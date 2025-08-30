@@ -19,28 +19,35 @@
             box-shadow: none;
             border: 2px solid #a37dfd;
         }
+        .lcars-panel-create {
+            background-color: #03a9f4;
+            border-color: #81d4fa;
+        }
         .lcars-text {
             color: #ff9100;
         }
+        .lcars-text-create {
+            color: #ffffff;
+        }
         .lcars-btn {
-            background-color: #03a9f4; /* azul vibrante */
+            background-color: #f57c00;
             color: white;
             border-radius: 1.5rem;
             transition-property: background-color;
             transition-duration: 300ms;
         }
         .lcars-btn:hover {
-            background-color: #0288d1;
+            background-color: #ef6c00;
         }
-        .lcars-btn-secondary {
-            background-color: #f57c00; /* naranja vibrante */
-            color: white;
+        .lcars-btn-create {
+            background-color: #55446f;
+            color: #ff9100;
             border-radius: 1.5rem;
             transition-property: background-color;
             transition-duration: 300ms;
         }
-        .lcars-btn-secondary:hover {
-            background-color: #ef6c00;
+        .lcars-btn-create:hover {
+            background-color: #4b3d68;
         }
         .lcars-input {
             background-color: #4b3d68;
@@ -48,6 +55,11 @@
             border-color: #a37dfd;
             border-radius: 1rem;
             box-shadow: none;
+        }
+        .lcars-input-create {
+            background-color: #0288d1;
+            border-color: #81d4fa;
+            color: white;
         }
         .lcars-input:focus {
             border-color: #ff9100;
@@ -82,7 +94,7 @@
         </div>
     </div>
     
-    <div id="loadingIndicator" class="hidden fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+    <div id="loadingIndicator" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
         <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-cyan-400"></div>
     </div>
 
@@ -101,11 +113,17 @@
         <button id="toggleAuthBtn" class="w-full text-center mt-4 text-[#a37dfd] hover:text-[#ff9100] transition-colors text-sm">
             Crear cuenta
         </button>
+        <button id="resendVerificationBtn" class="w-full text-center mt-2 text-cyan-400 hover:text-cyan-200 transition-colors text-sm hidden">
+            Reenviar correo de verificación
+        </button>
+        <button id="forgotPasswordBtn" class="w-full text-center mt-2 text-[#a37dfd] hover:text-[#ff9100] transition-colors text-sm">
+            ¿Olvidaste tu contraseña?
+        </button>
     </div>
 
     <!-- CONTENIDO PRINCIPAL DE LA APLICACIÓN (OCULTO POR DEFECTO) -->
     <div id="mainPanel" class="w-full max-w-4xl lcars-panel p-6 hidden">
-        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD</h1>
+        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
         <p id="userIdDisplay" class="text-sm text-[#ff9100] mb-4 text-center"></p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -328,7 +346,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -336,14 +354,14 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         // REEMPLAZA ESTO CON TUS CREDENCIALES DE FIREBASE
         const firebaseConfig = {
-  apiKey: "AIzaSyDXLi2seXlLz-JyOMB_gY68m-7qDx7bssU",
-  authDomain: "patients-jdcn-app.firebaseapp.com",
-  projectId: "patients-jdcn-app",
-  storageBucket: "patients-jdcn-app.firebasestorage.app",
-  messagingSenderId: "5231907336",
-  appId: "1:5231907336:web:58961f63cc4eaf1f1df7bd",
-  measurementId: "G-F8LX06SG7N"
-};
+          apiKey: "...",
+          authDomain: "...",
+          projectId: "...",
+          storageBucket: "...",
+          messagingSenderId: "...",
+          appId: "...",
+          measurementId: "..."
+        };
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         let db, auth, storage, userId;
@@ -356,6 +374,7 @@
         const authTitleEl = document.getElementById('authTitle');
         const authBtn = document.getElementById('authBtn');
         const toggleAuthBtn = document.getElementById('toggleAuthBtn');
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         const emailInput = document.getElementById('emailInput');
         const passwordInput = document.getElementById('passwordInput');
         const authErrorEl = document.getElementById('authError');
@@ -384,7 +403,7 @@
         const patientPathologicalHistoryInput = document.getElementById('patientPathologicalHistoryInput');
         const patientFamilyHistoryInput = document.getElementById('patientFamilyHistoryInput');
         const patientPharmacologicalHistoryInput = document.getElementById('patientPharmacologicalHistoryInput');
-        const patientSurgicalHistoryInput = document.getElementById('patientSurgicalHistoryInput');
+        const patientSurgicalHistoryInput = document.getElementById('patientPatientSurgicalHistoryInput');
 
         const patientCurrentIllnessInput = document.getElementById('patientCurrentIllnessInput');
         const patientTreatmentsInput = document.getElementById('patientTreatmentsInput');
@@ -509,6 +528,8 @@
                     return 'Este correo ya está registrado.';
                 case 'auth/weak-password':
                     return 'La contraseña debe tener al menos 6 caracteres.';
+                case 'auth/network-request-failed':
+                    return 'Error de conexión. Revisa tu conexión a internet.';
                 default:
                     return 'Ocurrió un error. Inténtalo de nuevo.';
             }
@@ -522,10 +543,47 @@
                 authTitleEl.textContent = 'Iniciar Sesión';
                 authBtn.textContent = 'Iniciar Sesión';
                 toggleAuthBtn.textContent = 'Crear cuenta';
+                authPanel.classList.remove('lcars-panel-create');
+                document.querySelector('#authPanel h1').classList.remove('lcars-text-create');
+                document.querySelector('#authPanel h1').classList.add('lcars-text');
+                authBtn.classList.remove('lcars-btn-create');
+                authBtn.classList.add('lcars-btn');
+                emailInput.classList.remove('lcars-input-create');
+                passwordInput.classList.remove('lcars-input-create');
+                forgotPasswordBtn.classList.remove('hidden');
             } else {
                 authTitleEl.textContent = 'Crear Cuenta';
                 authBtn.textContent = 'Crear Cuenta';
                 toggleAuthBtn.textContent = '¿Ya tienes una cuenta? Iniciar sesión';
+                authPanel.classList.add('lcars-panel-create');
+                document.querySelector('#authPanel h1').classList.remove('lcars-text');
+                document.querySelector('#authPanel h1').classList.add('lcars-text-create');
+                authBtn.classList.remove('lcars-btn');
+                authBtn.classList.add('lcars-btn-create');
+                emailInput.classList.add('lcars-input-create');
+                passwordInput.classList.add('lcars-input-create');
+                forgotPasswordBtn.classList.add('hidden');
+            }
+        }
+
+        async function handleForgotPassword() {
+            authErrorEl.classList.add('hidden');
+            const email = emailInput.value;
+            if (!email) {
+                authErrorEl.textContent = 'Por favor, ingresa tu correo para restablecer la contraseña.';
+                authErrorEl.classList.remove('hidden');
+                return;
+            }
+            loadingIndicator.classList.remove('hidden');
+            try {
+                await sendPasswordResetEmail(auth, email);
+                authErrorEl.textContent = 'Se ha enviado un correo para restablecer tu contraseña. Revisa tu bandeja de entrada.';
+                authErrorEl.classList.remove('hidden');
+            } catch (error) {
+                authErrorEl.textContent = getAuthErrorMessage(error.code);
+                authErrorEl.classList.remove('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         }
 
@@ -1048,6 +1106,7 @@
         authForm.addEventListener('submit', handleAuth);
         toggleAuthBtn.addEventListener('click', toggleAuthMode);
         logoutBtn.addEventListener('click', logout);
+        forgotPasswordBtn.addEventListener('click', handleForgotPassword);
     </script>
 </body>
 </html>
