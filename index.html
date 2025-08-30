@@ -68,7 +68,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen p-4 flex flex-col items-center">
+<body class="min-h-screen p-4 flex flex-col items-center justify-center">
 
     <!-- Modal de confirmación para eliminar paciente -->
     <div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-75 flex items-center justify-center">
@@ -85,9 +85,27 @@
     <div id="loadingIndicator" class="hidden fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
         <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-cyan-400"></div>
     </div>
-    
-    <div class="w-full max-w-4xl lcars-panel p-6">
-        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes</h1>
+
+    <!-- PANTALLA DE INICIO DE SESIÓN -->
+    <div id="authPanel" class="w-full max-w-sm lcars-panel p-6">
+        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
+        <h2 id="authTitle" class="text-xl font-semibold mb-4 text-[#a37dfd] text-center">Iniciar Sesión</h2>
+        <form id="authForm" class="space-y-4">
+            <input type="email" id="emailInput" placeholder="Correo Electrónico" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+            <input type="password" id="passwordInput" placeholder="Contraseña" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+            <div id="authError" class="text-red-400 text-center hidden"></div>
+            <button type="submit" id="authBtn" class="w-full lcars-btn text-lg font-semibold py-2 transition-colors">
+                Iniciar Sesión
+            </button>
+        </form>
+        <button id="toggleAuthBtn" class="w-full text-center mt-4 text-[#a37dfd] hover:text-[#ff9100] transition-colors text-sm">
+            Crear cuenta
+        </button>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL DE LA APLICACIÓN (OCULTO POR DEFECTO) -->
+    <div id="mainPanel" class="w-full max-w-4xl lcars-panel p-6 hidden">
+        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD</h1>
         <p id="userIdDisplay" class="text-sm text-[#ff9100] mb-4 text-center"></p>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -197,10 +215,16 @@
                 <div id="patientInfo" class="text-[#a37dfd] mt-1 p-4 bg-[#4b3d68] rounded-3xl shadow-sm">
                     <!-- Los datos del paciente se cargarán aquí -->
                 </div>
+                
+                <div class="flex justify-center mt-6">
+                    <button id="logoutBtn" class="lcars-btn-secondary text-white font-semibold py-2 px-6 hover:bg-[#ef6c00] transition-colors">
+                        Cerrar Sesión
+                    </button>
+                </div>
             </div>
 
             <!-- Formulario de Nuevo Paciente -->
-            <div id="newPatientFormPanel" class="md:col-span-2 lcars-panel p-4 hidden">
+            <div id="newPatientFormPanel" class="w-full max-w-4xl lcars-panel p-4 hidden">
                 <h2 id="formTitle" class="text-xl font-semibold mb-4 lcars-text">Añadir Nuevo Paciente</h2>
                 <form id="newPatientForm" class="space-y-4">
                     <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
@@ -304,7 +328,7 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
@@ -317,6 +341,17 @@
         const patientsRef = (uid) => collection(db, `artifacts/${appId}/users/${uid}/patients`);
         
         // UI elements
+        const authPanel = document.getElementById('authPanel');
+        const mainPanel = document.getElementById('mainPanel');
+        const authForm = document.getElementById('authForm');
+        const authTitleEl = document.getElementById('authTitle');
+        const authBtn = document.getElementById('authBtn');
+        const toggleAuthBtn = document.getElementById('toggleAuthBtn');
+        const emailInput = document.getElementById('emailInput');
+        const passwordInput = document.getElementById('passwordInput');
+        const authErrorEl = document.getElementById('authError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        
         const userIdDisplay = document.getElementById('userIdDisplay');
         const searchInput = document.getElementById('searchInput');
         const patientSuggestionsEl = document.getElementById('patientSuggestions');
@@ -369,7 +404,6 @@
         const generateClinicalSummaryBtn = document.getElementById('generateClinicalSummaryBtn');
         const generatePatientSummaryBtn = document.getElementById('generatePatientSummaryBtn');
         const aiClinicalSummarySection = document.getElementById('aiClinicalSummarySection');
-        const aiClinicalSummaryEl = document.getElementById('aiClinicalSummary');
         const aiPatientSummarySection = document.getElementById('aiPatientSummarySection');
         const aiPatientSummaryEl = document.getElementById('aiPatientSummary');
         
@@ -381,6 +415,7 @@
         let patients = [];
         let selectedPatientId = null;
         let isEditing = false;
+        let isLoginState = true;
 
         // Initialize Firebase
         function initializeAppAndAuth() {
@@ -394,37 +429,88 @@
                     if (user) {
                         userId = user.uid;
                         userIdDisplay.textContent = `Tu ID de usuario: ${userId}`;
+                        authPanel.classList.add('hidden');
+                        mainPanel.classList.remove('hidden');
                         setupRealtimeListener();
                     } else {
-                        // Sign in anonymously if no custom token is available
-                        await signInAnonymously(auth);
+                        userId = null;
+                        authPanel.classList.remove('hidden');
+                        mainPanel.classList.add('hidden');
                     }
                 });
-
-                if (initialAuthToken) {
-                    signInWithCustomToken(auth, initialAuthToken).catch(error => {
-                        console.error("Error signing in with custom token:", error);
-                        // Fallback to anonymous sign-in
-                        signInAnonymously(auth);
-                    });
-                } else {
-                    signInAnonymously(auth);
-                }
 
             } catch (e) {
                 console.error("Error initializing Firebase:", e);
             }
         }
+        
+        // Firebase Auth functions
+        async function handleAuth(e) {
+            e.preventDefault();
+            authErrorEl.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            try {
+                if (isLoginState) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (error) {
+                authErrorEl.textContent = getAuthErrorMessage(error.code);
+                authErrorEl.classList.remove('hidden');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        function getAuthErrorMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/invalid-email':
+                    return 'El correo electrónico no es válido.';
+                case 'auth/user-not-found':
+                    return 'No se encontró una cuenta con ese correo.';
+                case 'auth/wrong-password':
+                    return 'Contraseña incorrecta.';
+                case 'auth/email-already-in-use':
+                    return 'Este correo ya está registrado.';
+                case 'auth/weak-password':
+                    return 'La contraseña debe tener al menos 6 caracteres.';
+                default:
+                    return 'Ocurrió un error. Inténtalo de nuevo.';
+            }
+        }
+
+        function toggleAuthMode() {
+            isLoginState = !isLoginState;
+            authForm.reset();
+            authErrorEl.classList.add('hidden');
+            if (isLoginState) {
+                authTitleEl.textContent = 'Iniciar Sesión';
+                authBtn.textContent = 'Iniciar Sesión';
+                toggleAuthBtn.textContent = 'Crear cuenta';
+            } else {
+                authTitleEl.textContent = 'Crear Cuenta';
+                authBtn.textContent = 'Crear Cuenta';
+                toggleAuthBtn.textContent = '¿Ya tienes una cuenta? Iniciar sesión';
+            }
+        }
+
+        function logout() {
+            signOut(auth).catch((error) => {
+                console.error("Error al cerrar sesión:", error);
+            });
+        }
 
         // Real-time listener for patients collection
         function setupRealtimeListener() {
-            // This listener will fail if the Firebase Security Rules are not configured
-            // to allow the authenticated user to read and write to their own data.
-            // Please ensure the rules for your project permit this access.
             onSnapshot(patientsRef(userId), (snapshot) => {
                 patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderPatientList(patients);
-                updatePatientSuggestions(); // Actualizar las sugerencias de búsqueda
+                updatePatientSuggestions();
                 if (selectedPatientId) {
                     const patient = patients.find(p => p.id === selectedPatientId);
                     if (patient) {
@@ -436,7 +522,6 @@
                     }
                 }
             }, (error) => {
-                // Log the specific error and provide guidance.
                 console.error("Error al escuchar los datos del paciente. Esto es a menudo un problema de permisos en Firebase. Asegúrate de que las reglas de seguridad de Firestore permitan el acceso de tu usuario:", error);
             });
         }
@@ -494,7 +579,7 @@
                         <p class="text-xs text-[#a37dfd] mt-1">${new Date(note.timestamp).toLocaleString()}</p>
                         ${note.isPriority ? '<p class="text-xs text-white font-semibold mt-1">Nota Prioritaria</p>' : ''}
                     `;
-                    patientNotesEl.prepend(noteDiv); // Add latest note to the top
+                    patientNotesEl.prepend(noteDiv);
                 });
             } else {
                 patientNotesEl.innerHTML = '<p class="text-[#a37dfd]">No hay notas para este paciente.</p>';
@@ -519,7 +604,6 @@
                 patientAttachmentsEl.innerHTML = '<p class="text-[#a37dfd]">No hay archivos adjuntos para este paciente.</p>';
             }
             
-            // Hide other summary sections by default when selecting a new patient
             aiClinicalSummarySection.classList.add('hidden');
             aiPatientSummarySection.classList.add('hidden');
 
@@ -573,7 +657,6 @@
                     await addDoc(patientsRef(userId), patientData);
                 }
                 
-                // Clear form and reset UI
                 newPatientForm.reset();
                 patientAgeDisplay.textContent = '';
                 newPatientFormPanel.classList.add('hidden');
@@ -636,7 +719,6 @@
                 (error) => {
                     console.error("Error uploading file:", error);
                     uploadProgress.classList.add('hidden');
-                    // Removed alert for UI consistency
                 },
                 async () => {
                     try {
@@ -660,7 +742,6 @@
                     } catch (e) {
                         console.error("Error adding attachment URL:", e);
                         uploadProgress.classList.add('hidden');
-                        // Removed alert for UI consistency
                     }
                 }
             );
@@ -707,7 +788,6 @@
                 if (selectedPatientId) {
                     const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
                     await deleteDoc(patientRef);
-                    // UI will update automatically via the onSnapshot listener
                 }
             } catch (e) {
                 console.error("Error deleting patient:", e);
@@ -862,18 +942,17 @@
         async function generateClinicalSummary() {
             const prompt = `Basado en las siguientes notas de un paciente, genera un resumen conciso y profesional de su estado actual. No incluyas un título. Usa un tono médico. Notas: `;
             const systemPrompt = "Eres un asistente médico experto. Tu única tarea es resumir información clínica de manera profesional.";
-            aiPatientSummarySection.classList.add('hidden'); // Ocultar otro resumen
+            aiPatientSummarySection.classList.add('hidden');
             fetchGeminiSummary(prompt, aiClinicalSummaryEl, systemPrompt, aiClinicalSummarySection);
         }
 
         async function generatePatientSummary() {
             const prompt = `Basado en las siguientes notas clínicas de un paciente, genera un resumen de su estado de salud en un lenguaje sencillo y comprensible para el paciente. Evita la jerga médica. El resumen debe ser amable y tranquilizador. Notas: `;
             const systemPrompt = "Eres un asistente que genera resúmenes médicos fáciles de entender para los pacientes. Sé conciso y usa un lenguaje simple.";
-            aiClinicalSummarySection.classList.add('hidden'); // Ocultar otro resumen
+            aiClinicalSummarySection.classList.add('hidden');
             fetchGeminiSummary(prompt, aiPatientSummaryEl, systemPrompt, aiPatientSummarySection);
         }
 
-        // Tab functionality
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 tabButtons.forEach(btn => btn.classList.remove('active'));
@@ -884,7 +963,6 @@
             });
         });
 
-        // Search functionality
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
             const filteredPatients = patients.filter(patient => {
@@ -896,7 +974,6 @@
             renderPatientList(filteredPatients);
         });
 
-        // Event listeners
         showNewPatientFormBtn.addEventListener('click', () => {
             newPatientFormPanel.classList.remove('hidden');
             patientDetailsPanel.classList.add('hidden');
@@ -930,20 +1007,17 @@
         deletePatientBtn.addEventListener('click', deletePatient);
         confirmDeleteBtn.addEventListener('click', confirmDelete);
         cancelDeleteBtn.addEventListener('click', cancelDelete);
-
-
-        // Event listeners for the new buttons
         generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
         generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
-
-        // Age calculation event listener
         patientDobInput.addEventListener('input', (e) => {
             const dob = e.target.value;
             patientAgeDisplay.textContent = calculateAge(dob);
         });
 
-        // Initial setup
         initializeAppAndAuth();
+        authForm.addEventListener('submit', handleAuth);
+        toggleAuthBtn.addEventListener('click', toggleAuthMode);
+        logoutBtn.addEventListener('click', logout);
     </script>
 </body>
 </html>
