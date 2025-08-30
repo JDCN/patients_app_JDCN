@@ -88,7 +88,7 @@
 
     <!-- PANTALLA DE INICIO DE SESIÓN -->
     <div id="authPanel" class="w-full max-w-sm lcars-panel p-6">
-        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
+        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD</h1>
         <h2 id="authTitle" class="text-xl font-semibold mb-4 text-[#a37dfd] text-center">Iniciar Sesión</h2>
         <form id="authForm" class="space-y-4">
             <input type="email" id="emailInput" placeholder="Correo Electrónico" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
@@ -328,21 +328,21 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // Global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        // REEMPLAZA ESTO CON TUS CREDENCIALES DE FIREBASE
         const firebaseConfig = {
-  apiKey: "AIzaSyDXLi2seXlLz-JyOMB_gY68m-7qDx7bssU",
-  authDomain: "patients-jdcn-app.firebaseapp.com",
-  projectId: "patients-jdcn-app",
-  storageBucket: "patients-jdcn-app.firebasestorage.app",
-  messagingSenderId: "5231907336",
-  appId: "1:5231907336:web:58961f63cc4eaf1f1df7bd",
-  measurementId: "G-F8LX06SG7N"
-};
+          apiKey: "...",
+          authDomain: "...",
+          projectId: "...",
+          storageBucket: "...",
+          messagingSenderId: "...",
+          appId: "..."
+        };
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
         let db, auth, storage, userId;
@@ -435,11 +435,19 @@
 
                 onAuthStateChanged(auth, async (user) => {
                     if (user) {
-                        userId = user.uid;
-                        userIdDisplay.textContent = `Tu ID de usuario: ${userId}`;
-                        authPanel.classList.add('hidden');
-                        mainPanel.classList.remove('hidden');
-                        setupRealtimeListener();
+                        if (user.emailVerified) {
+                            userId = user.uid;
+                            userIdDisplay.textContent = `Tu ID de usuario: ${userId}`;
+                            authPanel.classList.add('hidden');
+                            mainPanel.classList.remove('hidden');
+                            setupRealtimeListener();
+                        } else {
+                            authErrorEl.textContent = 'Por favor, verifica tu correo para iniciar sesión.';
+                            authErrorEl.classList.remove('hidden');
+                            authPanel.classList.remove('hidden');
+                            mainPanel.classList.add('hidden');
+                            signOut(auth);
+                        }
                     } else {
                         userId = null;
                         authPanel.classList.remove('hidden');
@@ -465,7 +473,13 @@
                 if (isLoginState) {
                     await signInWithEmailAndPassword(auth, email, password);
                 } else {
-                    await createUserWithEmailAndPassword(auth, email, password);
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                    await sendEmailVerification(userCredential.user);
+                    authErrorEl.textContent = 'Cuenta creada. Por favor, verifica tu correo electrónico para iniciar sesión.';
+                    authErrorEl.classList.remove('hidden');
+                    authForm.reset();
+                    isLoginState = true;
+                    toggleAuthMode();
                 }
             } catch (error) {
                 authErrorEl.textContent = getAuthErrorMessage(error.code);
