@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Pacientes</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background-color: #211531;
+        }
+        .lcars-panel {
+            background-color: #55446f;
+            border-radius: 2rem;
+            box-shadow: none;
+            border: 2px solid #a37dfd;
+        }
+        .lcars-text {
+            color: #ff9100;
+        }
+        .lcars-btn {
+            background-color: #03a9f4; /* azul vibrante */
+            color: white;
+            border-radius: 1.5rem;
+            transition-property: background-color;
+            transition-duration: 300ms;
+        }
+        .lcars-btn:hover {
+            background-color: #0288d1;
+        }
+        .lcars-btn-secondary {
+            background-color: #f57c00; /* naranja vibrante */
+            color: white;
+            border-radius: 1.5rem;
+            transition-property: background-color;
+            transition-duration: 300ms;
+        }
+        .lcars-btn-secondary:hover {
+            background-color: #ef6c00;
+        }
+        .lcars-input {
+            background-color: #4b3d68;
+            color: #fff;
+            border-color: #a37dfd;
+            border-radius: 1rem;
+            box-shadow: none;
+        }
+        .lcars-input:focus {
+            border-color: #ff9100;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(255, 145, 0, 0.5);
+        }
+        .lcars-tab-button {
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
+            color: #a37dfd;
+            background-color: #4b3d68;
+        }
+        .lcars-tab-button.active {
+            color: #ff9100;
+            background-color: #55446f;
+            border-bottom: 2px solid #ff9100;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 flex flex-col items-center">
+
+    <!-- Modal de confirmación para eliminar paciente -->
+    <div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-75 flex items-center justify-center">
+        <div class="bg-[#55446f] p-6 rounded-3xl shadow-xl w-full max-w-sm mx-auto border-2 border-[#a37dfd]">
+            <h3 class="text-lg font-bold text-[#ff9100] mb-4">Confirmar Eliminación</h3>
+            <p class="text-[#a37dfd] mb-6">¿Estás seguro de que quieres eliminar a este paciente? Esta acción es irreversible.</p>
+            <div class="flex justify-end space-x-4">
+                <button id="cancelDeleteBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors">Cancelar</button>
+                <button id="confirmDeleteBtn" class="bg-[#f57c00] text-white rounded-xl py-2 px-4 hover:bg-[#ef6c00] transition-colors">Eliminar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="loadingIndicator" class="hidden fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+        <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-cyan-400"></div>
+    </div>
+    
+    <div class="w-full max-w-4xl lcars-panel p-6">
+        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes</h1>
+        <p id="userIdDisplay" class="text-sm text-[#ff9100] mb-4 text-center"></p>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <!-- Panel de Lista de Pacientes -->
+            <div class="md:col-span-1 lcars-panel p-4">
+                <h2 class="text-xl font-semibold mb-4 lcars-text">Mis Pacientes</h2>
+                
+                <!-- Barra de búsqueda con sugerencias -->
+                <input type="text" id="searchInput" placeholder="Buscar por nombre o ciudad..." list="patientSuggestions" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100] mb-4">
+                <datalist id="patientSuggestions"></datalist>
+
+                <button id="showNewPatientFormBtn" class="w-full lcars-btn text-lg font-semibold py-2 mb-4 transition-colors shadow-md text-white">
+                    + Añadir Nuevo Paciente
+                </button>
+                <ul id="patientList" class="space-y-2 max-h-96 overflow-y-auto">
+                    <!-- Los pacientes se cargarán aquí -->
+                </ul>
+            </div>
+
+            <!-- Panel Principal de Paciente -->
+            <div id="patientDetailsPanel" class="md:col-span-2 lcars-panel p-4 hidden">
+                <div class="flex items-center justify-between mb-4 border-b-2 pb-2 border-[#a37dfd]">
+                    <div class="flex-grow">
+                        <h2 id="patientName" class="text-2xl font-bold lcars-text"></h2>
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="editPatientBtn" class="text-[#03a9f4] hover:text-[#0288d1] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                        <button id="deletePatientBtn" class="text-[#f57c00] hover:text-[#ef6c00] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        </button>
+                        <button id="closePatientBtn" class="text-[#a37dfd] hover:text-[#b49cf8] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SECCIÓN DE RESUMEN RÁPIDO -->
+                <div id="aiQuickSummarySection" class="bg-[#4b3d68] p-4 rounded-3xl shadow-inner mb-6 border-2 border-[#a37dfd]">
+                    <h3 class="text-xl font-bold text-[#ff9100] mb-2">Resumen Rápido del Caso</h3>
+                    <div id="aiQuickSummary" class="text-white whitespace-pre-wrap">
+                        <p class="text-cyan-400 italic">Generando resumen...</p>
+                    </div>
+                </div>
+                
+                <div id="notesSection" class="mb-6">
+                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Notas</h3>
+                    <div id="patientNotes" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-4 max-h-60 overflow-y-auto border-2 border-[#a37dfd]">
+                        <!-- Las notas se cargarán aquí -->
+                    </div>
+                    <div class="mt-4 flex flex-col space-y-2">
+                        <textarea id="newNoteInput" placeholder="Añade una nueva nota..." class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100] text-white"></textarea>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="priorityNoteCheckbox" class="rounded text-[#f57c00] focus:ring-[#f57c00]">
+                            <label for="priorityNoteCheckbox" class="text-sm text-[#a37dfd]">Marcar como nota prioritaria</label>
+                        </div>
+                        <button id="addNoteBtn" class="w-full bg-[#03a9f4] text-white rounded-xl py-2 transition-colors shadow-md">
+                            Añadir Nota
+                        </button>
+                    </div>
+                </div>
+
+                <div id="attachmentsSection" class="mb-6">
+                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Archivos Adjuntos</h3>
+                    <div id="patientAttachments" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-2 max-h-40 overflow-y-auto border-2 border-[#a37dfd]">
+                        <!-- Los archivos se cargarán aquí -->
+                    </div>
+                    <div class="mt-4 flex flex-col space-y-2">
+                        <input type="file" id="attachmentFileInput" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        <button id="addAttachmentBtn" class="w-full bg-[#673ab7] text-white rounded-xl py-2 hover:bg-[#5e35b1] transition-colors shadow-md">
+                            Subir Archivo
+                        </button>
+                        <div id="uploadProgress" class="hidden w-full bg-[#4b3d68] rounded-full h-2.5 mt-2">
+                            <div id="progressBar" class="bg-[#ff9100] h-2.5 rounded-full" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6 space-y-2">
+                    <button id="generateClinicalSummaryBtn" class="w-full lcars-btn text-white rounded-xl py-2 transition-colors shadow-md">
+                        Generar Resumen Clínico con IA
+                    </button>
+                    <button id="generatePatientSummaryBtn" class="w-full bg-[#ff9100] text-white rounded-xl py-2 transition-colors shadow-md">
+                        Generar Resumen para el Paciente ✨
+                    </button>
+                </div>
+
+                <div id="aiClinicalSummarySection" class="hidden">
+                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Resumen Clínico (IA)</h3>
+                    <div id="aiClinicalSummary" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm text-white whitespace-pre-wrap">
+                        <!-- El resumen de la IA se mostrará aquí -->
+                    </div>
+                </div>
+
+                <div id="aiPatientSummarySection" class="hidden">
+                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Resumen para el Paciente (IA)</h3>
+                    <div id="aiPatientSummary" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm text-white whitespace-pre-wrap">
+                        <!-- El resumen de la IA para el paciente se mostrará aquí -->
+                    </div>
+                </div>
+
+                <!-- DATOS DEL PACIENTE AHORA EN LA PARTE INFERIOR -->
+                <div id="patientInfo" class="text-[#a37dfd] mt-1 p-4 bg-[#4b3d68] rounded-3xl shadow-sm">
+                    <!-- Los datos del paciente se cargarán aquí -->
+                </div>
+            </div>
+
+            <!-- Formulario de Nuevo Paciente -->
+            <div id="newPatientFormPanel" class="md:col-span-2 lcars-panel p-4 hidden">
+                <h2 id="formTitle" class="text-xl font-semibold mb-4 lcars-text">Añadir Nuevo Paciente</h2>
+                <form id="newPatientForm" class="space-y-4">
+                    <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                    <input type="text" id="patientLastNameInput" placeholder="Apellido" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                    <div class="flex items-center space-x-2">
+                        <input type="date" id="patientDobInput" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        <span id="patientAgeDisplay" class="text-sm text-[#a37dfd] w-1/4 min-w-[70px] text-right"></span>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="patientAddressInput" placeholder="Dirección" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        <input type="text" id="patientCityInput" placeholder="Ciudad de Residencia" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                    </div>
+                    
+                    <input type="text" id="patientContactInput" placeholder="Número de Contacto" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                    <input type="text" id="patientBirthplaceInput" placeholder="Lugar de Nacimiento" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                    
+                    <!-- PESTAÑAS PARA ANTECEDENTES -->
+                    <div>
+                        <h3 class="text-xl font-semibold lcars-text mb-2">Antecedentes</h3>
+                        <div class="flex border-b-2 border-[#a37dfd] mb-4">
+                            <button type="button" class="lcars-tab-button active flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="pathological">Patológicos</button>
+                            <button type="button" class="lcars-tab-button flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="family">Familiares</button>
+                            <button type="button" class="lcars-tab-button flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="pharmacological">Farmacológicos</button>
+                            <button type="button" class="lcars-tab-button flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="surgical">Quirúrgicos</button>
+                        </div>
+
+                        <div id="pathologicalTab" class="tab-content">
+                            <textarea id="patientPathologicalHistoryInput" placeholder="Antecedentes patológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        </div>
+                        <div id="familyTab" class="tab-content hidden">
+                            <textarea id="patientFamilyHistoryInput" placeholder="Antecedentes familiares" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        </div>
+                        <div id="pharmacologicalTab" class="tab-content hidden">
+                            <textarea id="patientPharmacologicalHistoryInput" placeholder="Antecedentes farmacológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        </div>
+                        <div id="surgicalTab" class="tab-content hidden">
+                            <textarea id="patientSurgicalHistoryInput" placeholder="Antecedentes quirúrgicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        </div>
+                    </div>
+                    
+                    <textarea id="patientCurrentIllnessInput" placeholder="Enfermedad Actual" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                    <textarea id="patientTreatmentsInput" placeholder="Tratamientos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                    <textarea id="patientAnalysisInput" placeholder="Análisis" class="w-full p-2 border-2 lcars-input resize-none focus:outline-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <button type="button" id="cancelNewPatientBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors shadow-md">
+                            Cancelar
+                        </button>
+                        <button type="submit" id="savePatientBtn" class="lcars-btn text-white rounded-xl py-2 px-4 transition-colors shadow-md">
+                            Guardar Paciente
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Datalist para las ciudades -->
+    <datalist id="cities">
+        <option value="Bogotá">
+        <option value="Medellín">
+        <option value="Cali">
+        <option value="Barranquilla">
+        <option value="Cartagena">
+        <option value="Bucaramanga">
+        <option value="Manizales">
+        <option value="Pereira">
+        <option value="Cúcuta">
+        <option value="Ibagué">
+        <option value="Santa Marta">
+        <option value="Villavicencio">
+        <option value="Pasto">
+        <option value="Popayán">
+        <option value="Tunja">
+        <option value="Neiva">
+        <option value="Sincelejo">
+        <option value="Montería">
+        <option value="San Andrés">
+        <option value="Florencia">
+        <option value="Armenia">
+        <option value="Quibdó">
+        <option value="Riohacha">
+        <option value="Valledupar">
+        <option value="Mocoa">
+        <option value="Yopal">
+        <option value="Puerto Carreño">
+        <option value="San José del Guaviare">
+        <option value="Mitú">
+        <option value="Inírida">
+        <option value="Leticia">
+        <option value="Quito">
+        <option value="Lima">
+        <option value="Buenos Aires">
+        <option value="Ciudad de México">
+        <option value="Madrid">
+        <option value="Miami">
+        <option value="Los Angeles">
+        <option value="Londres">
+    </datalist>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // Global variables provided by the environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, storage, userId;
+        const patientsRef = (uid) => collection(db, `artifacts/${appId}/users/${uid}/patients`);
+        
+        // UI elements
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const searchInput = document.getElementById('searchInput');
+        const patientSuggestionsEl = document.getElementById('patientSuggestions');
+        const patientListEl = document.getElementById('patientList');
+        const patientDetailsPanel = document.getElementById('patientDetailsPanel');
+        const newPatientFormPanel = document.getElementById('newPatientFormPanel');
+        const showNewPatientFormBtn = document.getElementById('showNewPatientFormBtn');
+        const cancelNewPatientBtn = document.getElementById('cancelNewPatientBtn');
+        const newPatientForm = document.getElementById('newPatientForm');
+        const formTitleEl = document.getElementById('formTitle');
+        const savePatientBtn = document.getElementById('savePatientBtn');
+        const patientNameInput = document.getElementById('patientNameInput');
+        const patientLastNameInput = document.getElementById('patientLastNameInput');
+        const patientDobInput = document.getElementById('patientDobInput');
+        const patientAgeDisplay = document.getElementById('patientAgeDisplay');
+        const patientAddressInput = document.getElementById('patientAddressInput');
+        const patientCityInput = document.getElementById('patientCityInput');
+        const patientContactInput = document.getElementById('patientContactInput');
+        const patientBirthplaceInput = document.getElementById('patientBirthplaceInput');
+        
+        const patientPathologicalHistoryInput = document.getElementById('patientPathologicalHistoryInput');
+        const patientFamilyHistoryInput = document.getElementById('patientFamilyHistoryInput');
+        const patientPharmacologicalHistoryInput = document.getElementById('patientPharmacologicalHistoryInput');
+        const patientSurgicalHistoryInput = document.getElementById('patientSurgicalHistoryInput');
+
+        const patientCurrentIllnessInput = document.getElementById('patientCurrentIllnessInput');
+        const patientTreatmentsInput = document.getElementById('patientTreatmentsInput');
+        const patientAnalysisInput = document.getElementById('patientAnalysisInput');
+        const patientNameEl = document.getElementById('patientName');
+        const patientInfoEl = document.getElementById('patientInfo');
+        const patientNotesEl = document.getElementById('patientNotes');
+        const newNoteInput = document.getElementById('newNoteInput');
+        const priorityNoteCheckbox = document.getElementById('priorityNoteCheckbox');
+        const addNoteBtn = document.getElementById('addNoteBtn');
+        const closePatientBtn = document.getElementById('closePatientBtn');
+        const editPatientBtn = document.getElementById('editPatientBtn');
+        const deletePatientBtn = document.getElementById('deletePatientBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+        const aiQuickSummarySection = document.getElementById('aiQuickSummarySection');
+        const aiQuickSummaryEl = document.getElementById('aiQuickSummary');
+
+        const patientAttachmentsEl = document.getElementById('patientAttachments');
+        const attachmentFileInput = document.getElementById('attachmentFileInput');
+        const addAttachmentBtn = document.getElementById('addAttachmentBtn');
+        const uploadProgress = document.getElementById('uploadProgress');
+        const progressBar = document.getElementById('progressBar');
+
+        const generateClinicalSummaryBtn = document.getElementById('generateClinicalSummaryBtn');
+        const generatePatientSummaryBtn = document.getElementById('generatePatientSummaryBtn');
+        const aiClinicalSummarySection = document.getElementById('aiClinicalSummarySection');
+        const aiClinicalSummaryEl = document.getElementById('aiClinicalSummary');
+        const aiPatientSummarySection = document.getElementById('aiPatientSummarySection');
+        const aiPatientSummaryEl = document.getElementById('aiPatientSummary');
+        
+        const loadingIndicator = document.getElementById('loadingIndicator');
+
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        let patients = [];
+        let selectedPatientId = null;
+        let isEditing = false;
+
+        // Initialize Firebase
+        function initializeAppAndAuth() {
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                storage = getStorage(app);
+
+                onAuthStateChanged(auth, async (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = `Tu ID de usuario: ${userId}`;
+                        setupRealtimeListener();
+                    } else {
+                        // Sign in anonymously if no custom token is available
+                        await signInAnonymously(auth);
+                    }
+                });
+
+                if (initialAuthToken) {
+                    signInWithCustomToken(auth, initialAuthToken).catch(error => {
+                        console.error("Error signing in with custom token:", error);
+                        // Fallback to anonymous sign-in
+                        signInAnonymously(auth);
+                    });
+                } else {
+                    signInAnonymously(auth);
+                }
+
+            } catch (e) {
+                console.error("Error initializing Firebase:", e);
+            }
+        }
+
+        // Real-time listener for patients collection
+        function setupRealtimeListener() {
+            // This listener will fail if the Firebase Security Rules are not configured
+            // to allow the authenticated user to read and write to their own data.
+            // Please ensure the rules for your project permit this access.
+            onSnapshot(patientsRef(userId), (snapshot) => {
+                patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderPatientList(patients);
+                updatePatientSuggestions(); // Actualizar las sugerencias de búsqueda
+                if (selectedPatientId) {
+                    const patient = patients.find(p => p.id === selectedPatientId);
+                    if (patient) {
+                        renderPatientDetails(patient);
+                    } else {
+                        selectedPatientId = null;
+                        patientDetailsPanel.classList.add('hidden');
+                        showNewPatientFormBtn.classList.remove('hidden');
+                    }
+                }
+            }, (error) => {
+                // Log the specific error and provide guidance.
+                console.error("Error al escuchar los datos del paciente. Esto es a menudo un problema de permisos en Firebase. Asegúrate de que las reglas de seguridad de Firestore permitan el acceso de tu usuario:", error);
+            });
+        }
+
+        function updatePatientSuggestions() {
+            patientSuggestionsEl.innerHTML = '';
+            patients.forEach(patient => {
+                const option = document.createElement('option');
+                option.value = `${patient.name} ${patient.lastName || ''} - ${patient.city || 'N/A'}`;
+                patientSuggestionsEl.appendChild(option);
+            });
+        }
+
+        // Render functions
+        function renderPatientList(patientList) {
+            patientListEl.innerHTML = '';
+            patientList.forEach(patient => {
+                const li = document.createElement('li');
+                li.className = 'bg-[#55446f] p-3 rounded-2xl shadow-sm cursor-pointer hover:bg-[#6b588a] transition-colors flex justify-between items-center border-2 border-[#a37dfd]';
+                const lastEntryDate = patient.lastEntry ? new Date(patient.lastEntry).toLocaleDateString('es-CO') : 'Sin entradas';
+                li.innerHTML = `
+                    <span class="font-semibold text-[#ff9100]">${patient.name} ${patient.lastName || ''}</span>
+                    <span class="text-xs text-[#a37dfd]">${lastEntryDate}</span>
+                `;
+                li.dataset.id = patient.id;
+                li.addEventListener('click', () => selectPatient(patient.id));
+                patientListEl.appendChild(li);
+            });
+        }
+
+        function renderPatientDetails(patient) {
+            patientNameEl.textContent = `${patient.name} ${patient.lastName || ''}`;
+            patientInfoEl.innerHTML = `
+                <p><strong>Fecha de Nacimiento:</strong> ${patient.dob} (${patient.age || 'N/A'})</p>
+                <p><strong>Dirección:</strong> ${patient.address || 'N/A'}</p>
+                <p><strong>Ciudad de Residencia:</strong> ${patient.city || 'N/A'}</p>
+                <p><strong>Contacto:</strong> ${patient.contact || 'N/A'}</p>
+                <p><strong>Lugar de Nacimiento:</strong> ${patient.birthplace || 'N/A'}</p>
+                <p><strong>Antecedentes Patológicos:</strong> ${patient.history?.pathological || 'N/A'}</p>
+                <p><strong>Antecedentes Familiares:</strong> ${patient.history?.family || 'N/A'}</p>
+                <p><strong>Antecedentes Farmacológicos:</strong> ${patient.history?.pharmacological || 'N/A'}</p>
+                <p><strong>Antecedentes Quirúrgicos:</strong> ${patient.history?.surgical || 'N/A'}</p>
+                <p><strong>Enfermedad Actual:</strong> ${patient.currentIllness || 'N/A'}</p>
+                <p><strong>Tratamientos:</strong> ${patient.treatments || 'N/A'}</p>
+                <p><strong>Análisis:</strong> ${patient.analysis || 'N/A'}</p>
+            `;
+            
+            patientNotesEl.innerHTML = '';
+            if (patient.notes && patient.notes.length > 0) {
+                patient.notes.forEach(note => {
+                    const noteDiv = document.createElement('div');
+                    noteDiv.className = `p-3 rounded-2xl ${note.isPriority ? 'bg-[#f57c00] border border-[#ef6c00]' : 'bg-[#4b3d68]'}`;
+                    noteDiv.innerHTML = `
+                        <p class="text-sm text-white">${note.text}</p>
+                        <p class="text-xs text-[#a37dfd] mt-1">${new Date(note.timestamp).toLocaleString()}</p>
+                        ${note.isPriority ? '<p class="text-xs text-white font-semibold mt-1">Nota Prioritaria</p>' : ''}
+                    `;
+                    patientNotesEl.prepend(noteDiv); // Add latest note to the top
+                });
+            } else {
+                patientNotesEl.innerHTML = '<p class="text-[#a37dfd]">No hay notas para este paciente.</p>';
+            }
+
+            patientAttachmentsEl.innerHTML = '';
+            if (patient.attachments && patient.attachments.length > 0) {
+                patient.attachments.forEach(attachment => {
+                    const attachmentDiv = document.createElement('div');
+                    attachmentDiv.className = 'p-3 rounded-2xl bg-[#4b3d68] border-2 border-[#a37dfd]';
+                    attachmentDiv.innerHTML = `
+                        <a href="${attachment.url}" target="_blank" class="text-cyan-400 hover:text-cyan-200 transition-colors font-semibold flex items-center space-x-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 2h2v1H6V6zm2 4H6v1h2v-1zm2 4H6v1h2v-1zm4-4h-2v1h2v-1zm0 4h-2v1h2v-1z" clip-rule="evenodd" />
+                            </svg>
+                            <span>${attachment.name}</span>
+                        </a>
+                    `;
+                    patientAttachmentsEl.appendChild(attachmentDiv);
+                });
+            } else {
+                patientAttachmentsEl.innerHTML = '<p class="text-[#a37dfd]">No hay archivos adjuntos para este paciente.</p>';
+            }
+            
+            // Hide other summary sections by default when selecting a new patient
+            aiClinicalSummarySection.classList.add('hidden');
+            aiPatientSummarySection.classList.add('hidden');
+
+            patientDetailsPanel.classList.remove('hidden');
+            newPatientFormPanel.classList.add('hidden');
+            showNewPatientFormBtn.classList.add('hidden');
+        }
+
+        // Logic
+        function selectPatient(patientId) {
+            selectedPatientId = patientId;
+            const patient = patients.find(p => p.id === patientId);
+            if (patient) {
+                renderPatientDetails(patient);
+                generateQuickSummary();
+            }
+        }
+
+        async function savePatient(e) {
+            e.preventDefault();
+            loadingIndicator.classList.remove('hidden');
+
+            const patientData = {
+                name: patientNameInput.value,
+                lastName: patientLastNameInput.value,
+                dob: patientDobInput.value,
+                age: patientAgeDisplay.textContent,
+                address: patientAddressInput.value,
+                city: patientCityInput.value,
+                contact: patientContactInput.value,
+                birthplace: patientBirthplaceInput.value,
+                history: {
+                    pathological: patientPathologicalHistoryInput.value,
+                    family: patientFamilyHistoryInput.value,
+                    pharmacological: patientPharmacologicalHistoryInput.value,
+                    surgical: patientSurgicalHistoryInput.value
+                },
+                currentIllness: patientCurrentIllnessInput.value,
+                treatments: patientTreatmentsInput.value,
+                analysis: patientAnalysisInput.value,
+            };
+
+            try {
+                if (isEditing) {
+                    const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
+                    await updateDoc(patientRef, patientData);
+                } else {
+                    patientData.notes = [];
+                    patientData.attachments = [];
+                    patientData.lastEntry = Date.now();
+                    await addDoc(patientsRef(userId), patientData);
+                }
+                
+                // Clear form and reset UI
+                newPatientForm.reset();
+                patientAgeDisplay.textContent = '';
+                newPatientFormPanel.classList.add('hidden');
+                patientDetailsPanel.classList.add('hidden');
+                showNewPatientFormBtn.classList.remove('hidden');
+                isEditing = false;
+                formTitleEl.textContent = 'Añadir Nuevo Paciente';
+                savePatientBtn.textContent = 'Guardar Paciente';
+            } catch (e) {
+                console.error("Error saving patient:", e);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        async function addNote() {
+            const noteText = newNoteInput.value.trim();
+            if (!noteText || !selectedPatientId) return;
+            
+            loadingIndicator.classList.remove('hidden');
+            try {
+                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
+                const newNote = {
+                    text: noteText,
+                    timestamp: Date.now(),
+                    isPriority: priorityNoteCheckbox.checked
+                };
+
+                const patientDoc = await getDoc(patientRef);
+                const currentNotes = patientDoc.data().notes || [];
+                const updatedNotes = [...currentNotes, newNote];
+
+                await updateDoc(patientRef, { notes: updatedNotes, lastEntry: Date.now() });
+
+                newNoteInput.value = '';
+                priorityNoteCheckbox.checked = false;
+
+            } catch (e) {
+                console.error("Error adding note:", e);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        async function addAttachment() {
+            const file = attachmentFileInput.files[0];
+            if (!file || !selectedPatientId) return;
+            
+            uploadProgress.classList.remove('hidden');
+            const fileName = file.name;
+            const storagePath = `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}/${fileName}`;
+            const storageRef = ref(storage, storagePath);
+            const uploadTask = uploadBytesResumable(storageRef, file);
+
+            uploadTask.on('state_changed', 
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    progressBar.style.width = progress + '%';
+                },
+                (error) => {
+                    console.error("Error uploading file:", error);
+                    uploadProgress.classList.add('hidden');
+                    // Removed alert for UI consistency
+                },
+                async () => {
+                    try {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
+                        const newAttachment = {
+                            name: fileName,
+                            url: downloadURL
+                        };
+
+                        const patientDoc = await getDoc(patientRef);
+                        const currentAttachments = patientDoc.data().attachments || [];
+                        const updatedAttachments = [...currentAttachments, newAttachment];
+
+                        await updateDoc(patientRef, { attachments: updatedAttachments });
+                        
+                        attachmentFileInput.value = '';
+                        uploadProgress.classList.add('hidden');
+                        progressBar.style.width = '0%';
+                        
+                    } catch (e) {
+                        console.error("Error adding attachment URL:", e);
+                        uploadProgress.classList.add('hidden');
+                        // Removed alert for UI consistency
+                    }
+                }
+            );
+        }
+
+        async function editPatient() {
+            isEditing = true;
+            formTitleEl.textContent = 'Editar Paciente';
+            savePatientBtn.textContent = 'Actualizar Paciente';
+
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (patient) {
+                patientNameInput.value = patient.name || '';
+                patientLastNameInput.value = patient.lastName || '';
+                patientDobInput.value = patient.dob || '';
+                patientAgeDisplay.textContent = patient.age || '';
+                patientAddressInput.value = patient.address || '';
+                patientCityInput.value = patient.city || '';
+                patientContactInput.value = patient.contact || '';
+                patientBirthplaceInput.value = patient.birthplace || '';
+                
+                patientPathologicalHistoryInput.value = patient.history?.pathological || '';
+                patientFamilyHistoryInput.value = patient.history?.family || '';
+                patientPharmacologicalHistoryInput.value = patient.history?.pharmacological || '';
+                patientSurgicalHistoryInput.value = patient.history?.surgical || '';
+
+                patientCurrentIllnessInput.value = patient.currentIllness || '';
+                patientTreatmentsInput.value = patient.treatments || '';
+                patientAnalysisInput.value = patient.analysis || '';
+            }
+
+            patientDetailsPanel.classList.add('hidden');
+            newPatientFormPanel.classList.remove('hidden');
+        }
+
+        async function deletePatient() {
+            deleteModal.classList.remove('hidden');
+        }
+
+        async function confirmDelete() {
+            deleteModal.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+            try {
+                if (selectedPatientId) {
+                    const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
+                    await deleteDoc(patientRef);
+                    // UI will update automatically via the onSnapshot listener
+                }
+            } catch (e) {
+                console.error("Error deleting patient:", e);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        function cancelDelete() {
+            deleteModal.classList.add('hidden');
+        }
+
+        function calculateAge(dob) {
+            if (!dob) return '';
+            const today = new Date();
+            const birthDate = new Date(dob);
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const m = today.getMonth() - birthDate.getMonth();
+            if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            return `${age} años`;
+        }
+
+        async function generateQuickSummary() {
+            aiQuickSummaryEl.textContent = 'Generando resumen...';
+            
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (!patient || !patient.notes || patient.notes.length === 0) {
+                aiQuickSummaryEl.textContent = 'No hay notas para generar un resumen rápido.';
+                return;
+            }
+
+            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
+            const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
+            
+            const userQuery = `Basado en la siguiente información y las notas de este paciente, genera un resumen muy breve y conciso de su estado actual, lo más importante de su caso y cualquier pendiente o próxima acción. Información: ${historyText}\nNotas: ${allNotes}`;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: "Eres un asistente médico experto. Tu única tarea es analizar un caso de paciente y resumir los puntos más críticos y las tareas pendientes en un tono profesional y directo. Sé extremadamente breve y ve al grano." }]
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            let retries = 0;
+            const maxRetries = 5;
+            let success = false;
+
+            while (retries < maxRetries && !success) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
+                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
+                            await new Promise(res => setTimeout(res, delay));
+                            retries++;
+                            continue;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
+                    aiQuickSummaryEl.textContent = text;
+                    success = true;
+
+                } catch (error) {
+                    console.error("Error generating quick summary:", error);
+                    aiQuickSummaryEl.textContent = 'Error al generar el resumen rápido. Inténtalo de nuevo.';
+                    break;
+                }
+            }
+        }
+        
+        async function fetchGeminiSummary(prompt, targetElement, systemPrompt, sectionElement) {
+            loadingIndicator.classList.remove('hidden');
+            sectionElement.classList.remove('hidden');
+            targetElement.textContent = 'Generando resumen...';
+
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (!patient || !patient.notes || patient.notes.length === 0) {
+                targetElement.textContent = 'No hay notas para generar un resumen.';
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
+            const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
+
+            const userQuery = prompt + historyText + allNotes;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                }
+            };
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            let retries = 0;
+            const maxRetries = 5;
+            let success = false;
+
+            while (retries < maxRetries && !success) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
+                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
+                            await new Promise(res => setTimeout(res, delay));
+                            retries++;
+                            continue;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
+                    targetElement.textContent = text;
+                    success = true;
+
+                } catch (error) {
+                    console.error("Error generating summary:", error);
+                    targetElement.textContent = 'Error al generar el resumen. Inténtalo de nuevo más tarde.';
+                    break;
+                }
+            }
+
+            loadingIndicator.classList.add('hidden');
+        }
+
+        async function generateClinicalSummary() {
+            const prompt = `Basado en las siguientes notas de un paciente, genera un resumen conciso y profesional de su estado actual. No incluyas un título. Usa un tono médico. Notas: `;
+            const systemPrompt = "Eres un asistente médico experto. Tu única tarea es resumir información clínica de manera profesional.";
+            aiPatientSummarySection.classList.add('hidden'); // Ocultar otro resumen
+            fetchGeminiSummary(prompt, aiClinicalSummaryEl, systemPrompt, aiClinicalSummarySection);
+        }
+
+        async function generatePatientSummary() {
+            const prompt = `Basado en las siguientes notas clínicas de un paciente, genera un resumen de su estado de salud en un lenguaje sencillo y comprensible para el paciente. Evita la jerga médica. El resumen debe ser amable y tranquilizador. Notas: `;
+            const systemPrompt = "Eres un asistente que genera resúmenes médicos fáciles de entender para los pacientes. Sé conciso y usa un lenguaje simple.";
+            aiClinicalSummarySection.classList.add('hidden'); // Ocultar otro resumen
+            fetchGeminiSummary(prompt, aiPatientSummaryEl, systemPrompt, aiPatientSummarySection);
+        }
+
+        // Tab functionality
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.add('hidden'));
+
+                button.classList.add('active');
+                document.getElementById(button.dataset.tab + 'Tab').classList.remove('hidden');
+            });
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredPatients = patients.filter(patient => {
+                const name = (patient.name || '').toLowerCase();
+                const lastName = (patient.lastName || '').toLowerCase();
+                const city = (patient.city || '').toLowerCase();
+                return name.includes(searchTerm) || lastName.includes(searchTerm) || city.includes(searchTerm);
+            });
+            renderPatientList(filteredPatients);
+        });
+
+        // Event listeners
+        showNewPatientFormBtn.addEventListener('click', () => {
+            newPatientFormPanel.classList.remove('hidden');
+            patientDetailsPanel.classList.add('hidden');
+            showNewPatientFormBtn.classList.add('hidden');
+            newPatientForm.reset();
+            patientAgeDisplay.textContent = '';
+            isEditing = false;
+            formTitleEl.textContent = 'Añadir Nuevo Paciente';
+            savePatientBtn.textContent = 'Guardar Paciente';
+        });
+
+        cancelNewPatientBtn.addEventListener('click', () => {
+            newPatientFormPanel.classList.add('hidden');
+            patientDetailsPanel.classList.add('hidden');
+            showNewPatientFormBtn.classList.remove('hidden');
+            newPatientForm.reset();
+            patientAgeDisplay.textContent = '';
+            isEditing = false;
+        });
+
+        newPatientForm.addEventListener('submit', savePatient);
+        addNoteBtn.addEventListener('click', addNote);
+        addAttachmentBtn.addEventListener('click', addAttachment);
+        closePatientBtn.addEventListener('click', () => {
+            patientDetailsPanel.classList.add('hidden');
+            showNewPatientFormBtn.classList.remove('hidden');
+            selectedPatientId = null;
+        });
+
+        editPatientBtn.addEventListener('click', editPatient);
+        deletePatientBtn.addEventListener('click', deletePatient);
+        confirmDeleteBtn.addEventListener('click', confirmDelete);
+        cancelDeleteBtn.addEventListener('click', cancelDelete);
+
+
+        // Event listeners for the new buttons
+        generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
+        generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
+
+        // Age calculation event listener
+        patientDobInput.addEventListener('input', (e) => {
+            const dob = e.target.value;
+            patientAgeDisplay.textContent = calculateAge(dob);
+        });
+
+        // Initial setup
+        initializeAppAndAuth();
+    </script>
+</body>
+</html>
