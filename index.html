@@ -78,6 +78,11 @@
             border-bottom: 2px solid #ff9100;
             font-weight: 700;
         }
+        .calendar-day.has-appointment {
+            background-color: #ff9100;
+            color: #211531;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center justify-center">
@@ -142,6 +147,29 @@
                 <ul id="patientList" class="space-y-2 max-h-96 overflow-y-auto">
                     <!-- Los pacientes se cargarán aquí -->
                 </ul>
+            </div>
+
+            <!-- Panel de Calendario -->
+            <div id="calendarPanel" class="md:col-span-1 lcars-panel p-4 flex flex-col items-center hidden">
+                <h2 class="text-xl font-semibold mb-4 lcars-text">Citas del mes</h2>
+                <div class="w-full flex justify-between items-center mb-4">
+                    <button id="prevMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <span id="currentMonthYear" class="text-lg font-bold text-white"></span>
+                    <button id="nextMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                </div>
+                <div class="w-full grid grid-cols-7 text-center text-xs text-[#a37dfd] mb-2">
+                    <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                </div>
+                <div id="calendarGrid" class="w-full grid grid-cols-7 gap-1 text-center text-white">
+                    <!-- Días del calendario se renderizarán aquí -->
+                </div>
+                <button id="addAppointmentBtn" class="w-full lcars-btn text-sm font-semibold py-2 mt-4 transition-colors shadow-md text-white">
+                    Agendar Cita
+                </button>
             </div>
 
             <!-- Panel Principal de Paciente -->
