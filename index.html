@@ -150,7 +150,7 @@
             </div>
 
             <!-- Panel de Calendario -->
-            <div id="calendarPanel" class="md:col-span-1 lcars-panel p-4 flex flex-col items-center hidden">
+            <div id="calendarPanel" class="md:col-span-1 lcars-panel p-4 flex flex-col items-center">
                 <h2 class="text-xl font-semibold mb-4 lcars-text">Citas del mes</h2>
                 <div class="w-full flex justify-between items-center mb-4">
                     <button id="prevMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
@@ -173,7 +173,7 @@
             </div>
 
             <!-- Panel Principal de Paciente -->
-            <div id="patientDetailsPanel" class="md:col-span-2 lcars-panel p-4 hidden">
+            <div id="patientDetailsPanel" class="md:col-span-1 lcars-panel p-4 hidden">
                 <div class="flex items-center justify-between mb-4 border-b-2 pb-2 border-[#a37dfd]">
                     <div class="flex-grow">
                         <h2 id="patientName" class="text-2xl font-bold lcars-text"></h2>
@@ -468,10 +468,19 @@
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
 
+        const calendarGrid = document.getElementById('calendarGrid');
+        const currentMonthYearEl = document.getElementById('currentMonthYear');
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const addAppointmentBtn = document.getElementById('addAppointmentBtn');
+
         let patients = [];
         let selectedPatientId = null;
         let isEditing = false;
         let isLoginState = true;
+
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
 
         // Initialize Firebase
         function initializeAppAndAuth() {
@@ -494,6 +503,7 @@
                             authPanel.classList.add('hidden');
                             mainPanel.classList.remove('hidden');
                             setupRealtimeListener();
+                            renderCalendar();
                         } else {
                             authErrorEl.textContent = 'Por favor, verifica tu correo para iniciar sesión.';
                             authErrorEl.classList.remove('hidden');
@@ -627,6 +637,7 @@
                 patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderPatientList(patients);
                 updatePatientSuggestions();
+                renderCalendar();
                 if (selectedPatientId) {
                     const patient = patients.find(p => p.id === selectedPatientId);
                     if (patient) {
@@ -927,6 +938,92 @@
             }
             return `${age} años`;
         }
+        
+        // Calendar logic
+        function renderCalendar() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+            const startDayOfWeek = firstDayOfMonth.getDay();
+            const daysInMonth = lastDayOfMonth.getDate();
+
+            currentMonthYearEl.textContent = `${new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(firstDayOfMonth)} ${currentYear}`;
+            calendarGrid.innerHTML = '';
+
+            for (let i = 0; i < startDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('py-2');
+                calendarGrid.appendChild(emptyDay);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.classList.add('py-2', 'rounded-full', 'cursor-pointer', 'hover:bg-[#4b3d68]', 'transition-colors', 'calendar-day');
+                dayEl.textContent = day;
+                
+                // Check for appointments
+                const dateToCheck = new Date(currentYear, currentMonth, day).toISOString().slice(0, 10);
+                const hasAppointment = patients.some(p => p.appointments && p.appointments.some(a => a.date === dateToCheck));
+                if (hasAppointment) {
+                    dayEl.classList.add('has-appointment');
+                }
+                
+                dayEl.addEventListener('click', () => {
+                    // Show appointments for the day
+                    console.log('Citas para el día:', dateToCheck);
+                });
+                calendarGrid.appendChild(dayEl);
+            }
+        }
+        
+        // Appointment scheduling logic
+        async function addAppointment() {
+            if (!selectedPatientId) {
+                console.error('No hay un paciente seleccionado.');
+                return;
+            }
+
+            const appointmentDate = prompt('Ingresa la fecha de la cita (YYYY-MM-DD):');
+            if (appointmentDate) {
+                loadingIndicator.classList.remove('hidden');
+                try {
+                    const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
+                    const newAppointment = {
+                        date: appointmentDate,
+                        timestamp: Date.now()
+                    };
+                    const patientDoc = await getDoc(patientRef);
+                    const currentAppointments = patientDoc.data().appointments || [];
+                    const updatedAppointments = [...currentAppointments, newAppointment];
+                    await updateDoc(patientRef, { appointments: updatedAppointments });
+                    console.log('Cita agendada con éxito para el paciente', selectedPatientId);
+                } catch (e) {
+                    console.error("Error al agendar la cita:", e);
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
+        }
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        addAppointmentBtn.addEventListener('click', addAppointment);
 
         async function generateQuickSummary() {
             aiQuickSummaryEl.textContent = 'Generando resumen...';
