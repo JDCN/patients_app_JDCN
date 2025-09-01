@@ -484,8 +484,8 @@
 
         // Initialize Firebase
         function initializeAppAndAuth() {
-            if (Object.keys(firebaseConfig).length === 0) {
-                authErrorEl.textContent = 'Error de configuración: Agrega tus credenciales de Firebase en el código.';
+            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.apiKey) {
+                authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase.';
                 authErrorEl.classList.remove('hidden');
                 return;
             }
@@ -569,7 +569,7 @@
                 case 'auth/network-request-failed':
                     return 'Error de conexión. Revisa tu conexión a internet.';
                 default:
-                    return 'Ocurrió un error. Inténtalo de nuevo.';
+                    return `Ocurrió un error: ${errorCode}`;
             }
         }
 
