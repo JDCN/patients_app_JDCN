@@ -127,7 +127,7 @@
     </div>
 
     <!-- CONTENIDO PRINCIPAL DE LA APLICACIÓN (OCULTO POR DEFECTO) -->
-    <div id="mainPanel" class="w-full max-w-4xl lcars-panel p-6 hidden">
+    <div id="mainPanel" class="w-full max-w-4xl p-6 hidden">
         <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
         <p id="userIdDisplay" class="text-sm text-[#ff9100] mb-4 text-center"></p>
 
@@ -167,13 +167,13 @@
                 <div id="calendarGrid" class="w-full grid grid-cols-7 gap-1 text-center text-white">
                     <!-- Días del calendario se renderizarán aquí -->
                 </div>
-                <button id="addAppointmentBtn" class="w-full lcars-btn text-sm font-semibold py-2 mt-4 transition-colors shadow-md text-white">
+                <button id="addAppointmentFromCalendarBtn" class="w-full lcars-btn text-sm font-semibold py-2 mt-4 transition-colors shadow-md text-white">
                     Agendar Cita
                 </button>
             </div>
 
             <!-- Panel Principal de Paciente -->
-            <div id="patientDetailsPanel" class="md:col-span-1 lcars-panel p-4 hidden">
+            <div id="patientDetailsPanel" class="md:col-span-2 lcars-panel p-4 hidden">
                 <div class="flex items-center justify-between mb-4 border-b-2 pb-2 border-[#a37dfd]">
                     <div class="flex-grow">
                         <h2 id="patientName" class="text-2xl font-bold lcars-text"></h2>
@@ -233,6 +233,17 @@
                         </div>
                     </div>
                 </div>
+                
+                <div id="appointmentsSection" class="mb-6">
+                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Citas agendadas</h3>
+                    <div id="patientAppointments" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-2 max-h-40 overflow-y-auto border-2 border-[#a37dfd]">
+                        <!-- Las citas se cargarán aquí -->
+                    </div>
+                    <button id="addAppointmentFromPatientBtn" class="w-full bg-[#673ab7] text-white rounded-xl py-2 hover:bg-[#5e35b1] transition-colors shadow-md mt-4">
+                        Agendar Cita para este Paciente
+                    </button>
+                </div>
+
 
                 <div class="mb-6 space-y-2">
                     <button id="generateClinicalSummaryBtn" class="w-full lcars-btn text-white rounded-xl py-2 transition-colors shadow-md">
@@ -472,7 +483,7 @@
         const currentMonthYearEl = document.getElementById('currentMonthYear');
         const prevMonthBtn = document.getElementById('prevMonthBtn');
         const nextMonthBtn = document.getElementById('nextMonthBtn');
-        const addAppointmentBtn = document.getElementById('addAppointmentBtn');
+        const addAppointmentFromCalendarBtn = document.getElementById('addAppointmentFromCalendarBtn');
 
         let patients = [];
         let selectedPatientId = null;
@@ -747,6 +758,10 @@
                 renderPatientDetails(patient);
                 generateQuickSummary();
             }
+            mainPanel.classList.remove('grid-cols-3');
+            mainPanel.classList.add('grid-cols-2');
+            calendarPanel.classList.add('hidden');
+            patientDetailsPanel.classList.remove('hidden');
         }
 
         async function savePatient(e) {
@@ -780,6 +795,7 @@
                 } else {
                     patientData.notes = [];
                     patientData.attachments = [];
+                    patientData.appointments = [];
                     patientData.lastEntry = Date.now();
                     await addDoc(patientsRef(userId), patientData);
                 }
@@ -792,6 +808,10 @@
                 isEditing = false;
                 formTitleEl.textContent = 'Añadir Nuevo Paciente';
                 savePatientBtn.textContent = 'Guardar Paciente';
+                // Show calendar again after saving
+                calendarPanel.classList.remove('hidden');
+                mainPanel.classList.remove('grid-cols-2');
+                mainPanel.classList.add('grid-cols-3');
             } catch (e) {
                 console.error("Error saving patient:", e);
             } finally {
@@ -977,31 +997,25 @@
         }
         
         // Appointment scheduling logic
-        async function addAppointment() {
-            if (!selectedPatientId) {
-                console.error('No hay un paciente seleccionado.');
-                return;
-            }
-
-            const appointmentDate = prompt('Ingresa la fecha de la cita (YYYY-MM-DD):');
-            if (appointmentDate) {
-                loadingIndicator.classList.remove('hidden');
-                try {
-                    const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
-                    const newAppointment = {
-                        date: appointmentDate,
-                        timestamp: Date.now()
-                    };
-                    const patientDoc = await getDoc(patientRef);
-                    const currentAppointments = patientDoc.data().appointments || [];
-                    const updatedAppointments = [...currentAppointments, newAppointment];
-                    await updateDoc(patientRef, { appointments: updatedAppointments });
-                    console.log('Cita agendada con éxito para el paciente', selectedPatientId);
-                } catch (e) {
-                    console.error("Error al agendar la cita:", e);
-                } finally {
-                    loadingIndicator.classList.add('hidden');
-                }
+        async function addAppointment(patientId, appointmentDate) {
+            if (!patientId || !appointmentDate) return;
+            
+            loadingIndicator.classList.remove('hidden');
+            try {
+                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patientId}`);
+                const newAppointment = {
+                    date: appointmentDate,
+                    timestamp: Date.now()
+                };
+                const patientDoc = await getDoc(patientRef);
+                const currentAppointments = patientDoc.data().appointments || [];
+                const updatedAppointments = [...currentAppointments, newAppointment];
+                await updateDoc(patientRef, { appointments: updatedAppointments });
+                console.log('Cita agendada con éxito para el paciente', patientId);
+            } catch (e) {
+                console.error("Error al agendar la cita:", e);
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         }
 
@@ -1023,7 +1037,20 @@
             renderCalendar();
         });
 
-        addAppointmentBtn.addEventListener('click', addAppointment);
+        addAppointmentFromCalendarBtn.addEventListener('click', () => {
+            const patientName = prompt('Agendar cita. Ingresa el nombre completo del paciente:');
+            if (patientName) {
+                const patient = patients.find(p => `${p.name} ${p.lastName}`.toLowerCase() === patientName.toLowerCase());
+                if (patient) {
+                    const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
+                    if (appointmentDate) {
+                        addAppointment(patient.id, appointmentDate);
+                    }
+                } else {
+                    console.error('Paciente no encontrado.');
+                }
+            }
+        });
 
         async function generateQuickSummary() {
             aiQuickSummaryEl.textContent = 'Generando resumen...';
@@ -1196,8 +1223,10 @@
             isEditing = false;
             formTitleEl.textContent = 'Añadir Nuevo Paciente';
             savePatientBtn.textContent = 'Guardar Paciente';
+            
+            calendarPanel.classList.add('hidden');
         });
-
+        
         cancelNewPatientBtn.addEventListener('click', () => {
             newPatientFormPanel.classList.add('hidden');
             patientDetailsPanel.classList.add('hidden');
@@ -1205,6 +1234,8 @@
             newPatientForm.reset();
             patientAgeDisplay.textContent = '';
             isEditing = false;
+            
+            calendarPanel.classList.remove('hidden');
         });
 
         newPatientForm.addEventListener('submit', savePatient);
@@ -1214,6 +1245,7 @@
             patientDetailsPanel.classList.add('hidden');
             showNewPatientFormBtn.classList.remove('hidden');
             selectedPatientId = null;
+            calendarPanel.classList.remove('hidden');
         });
 
         editPatientBtn.addEventListener('click', editPatient);
@@ -1226,12 +1258,114 @@
             const dob = e.target.value;
             patientAgeDisplay.textContent = calculateAge(dob);
         });
+        
+        document.getElementById('addAppointmentFromPatientBtn').addEventListener('click', () => {
+            if (!selectedPatientId) {
+                console.error('No hay un paciente seleccionado.');
+                return;
+            }
+            const appointmentDate = prompt('Agendar cita. Ingresa la fecha (YYYY-MM-DD):');
+            if (appointmentDate) {
+                addAppointment(selectedPatientId, appointmentDate);
+            }
+        });
+        
+        // Calendar logic
+        function renderCalendar() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+            const startDayOfWeek = firstDayOfMonth.getDay();
+            const daysInMonth = lastDayOfMonth.getDate();
 
-        initializeAppAndAuth();
-        authForm.addEventListener('submit', handleAuth);
-        toggleAuthBtn.addEventListener('click', toggleAuthMode);
-        logoutBtn.addEventListener('click', logout);
-        forgotPasswordBtn.addEventListener('click', handleForgotPassword);
-    </script>
-</body>
-</html>
+            currentMonthYearEl.textContent = `${new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(firstDayOfMonth)} ${currentYear}`;
+            calendarGrid.innerHTML = '';
+
+            for (let i = 0; i < startDayOfWeek; i++) {
+                const emptyDay = document.createElement('div');
+                emptyDay.classList.add('py-2');
+                calendarGrid.appendChild(emptyDay);
+            }
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayEl = document.createElement('div');
+                dayEl.classList.add('py-2', 'rounded-full', 'cursor-pointer', 'hover:bg-[#4b3d68]', 'transition-colors', 'calendar-day');
+                dayEl.textContent = day;
+                
+                // Check for appointments
+                const dateToCheck = new Date(currentYear, currentMonth, day).toISOString().slice(0, 10);
+                const hasAppointment = patients.some(p => p.appointments && p.appointments.some(a => a.date === dateToCheck));
+                if (hasAppointment) {
+                    dayEl.classList.add('has-appointment');
+                }
+                
+                dayEl.addEventListener('click', () => {
+                    // Show appointments for the day
+                    console.log('Citas para el día:', dateToCheck);
+                });
+                calendarGrid.appendChild(dayEl);
+            }
+        }
+        
+        // Appointment scheduling logic
+        async function addAppointment(patientId, appointmentDate) {
+            if (!patientId || !appointmentDate) return;
+            
+            loadingIndicator.classList.remove('hidden');
+            try {
+                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patientId}`);
+                const newAppointment = {
+                    date: appointmentDate,
+                    timestamp: Date.now()
+                };
+                const patientDoc = await getDoc(patientRef);
+                const currentAppointments = patientDoc.data().appointments || [];
+                const updatedAppointments = [...currentAppointments, newAppointment];
+                await updateDoc(patientRef, { appointments: updatedAppointments });
+                console.log('Cita agendada con éxito para el paciente', patientId);
+            } catch (e) {
+                console.error("Error al agendar la cita:", e);
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar();
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar();
+        });
+
+        addAppointmentFromCalendarBtn.addEventListener('click', () => {
+            const patientName = prompt('Agendar cita. Ingresa el nombre completo del paciente:');
+            if (patientName) {
+                const patient = patients.find(p => `${p.name} ${p.lastName}`.toLowerCase() === patientName.toLowerCase());
+                if (patient) {
+                    const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
+                    if (appointmentDate) {
+                        addAppointment(patient.id, appointmentDate);
+                    }
+                } else {
+                    console.error('Paciente no encontrado.');
+                }
+            }
+        });
+
+        async function generateQuickSummary() {
+            aiQuickSummaryEl.textContent = 'Generando resumen...';
+            
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (!patient || !patient.notes || patient.notes.length === 0) {
+                aiQuickSummaryEl
