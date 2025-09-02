@@ -509,7 +509,8 @@
 
         // Initialize Firebase
         window.onload = function () {
-            if (Object.keys(firebaseConfig).length === 0) {
+            // Check if firebaseConfig is not empty
+            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.projectId) {
                 authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase. La aplicación no funcionará.';
                 authErrorEl.classList.remove('hidden');
                 console.error("Firebase config not found.");
