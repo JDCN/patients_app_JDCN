@@ -559,6 +559,14 @@
             loadingIndicator.classList.remove('hidden');
             const email = emailInput.value;
             const password = passwordInput.value;
+
+            if (!email || !password) {
+                authErrorEl.textContent = 'Por favor, introduce correo y contraseña.';
+                authErrorEl.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
             try {
                 if (isLoginState) {
                     await signInWithEmailAndPassword(auth, email, password);
@@ -594,7 +602,7 @@
                 case 'auth/missing-password':
                     return 'Por favor, introduce una contraseña.';
                 default:
-                    return `Ocurrió un error: ${errorCode}`;
+                    return `Ocurrió un error inesperado. Por favor, inténtalo de nuevo.`;
             }
         }
 
