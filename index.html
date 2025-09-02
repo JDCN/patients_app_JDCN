@@ -116,6 +116,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal para Agendar Cita -->
+    <div id="appointmentModal" class="hidden fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-75 flex items-center justify-center">
+        <div class="custom-modal p-6 w-full max-w-sm mx-auto">
+            <h3 class="text-lg font-bold text-[#ff9100] mb-4">Agendar Cita</h3>
+            <p class="text-[#a37dfd] mb-4">Selecciona un paciente y una fecha para agendar la cita.</p>
+            <form id="appointmentForm" class="space-y-4">
+                <input type="text" id="appointmentPatientInput" placeholder="Nombre completo del paciente" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]" list="patientSuggestions">
+                <input type="date" id="appointmentDateInput" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                <div class="flex justify-end space-x-4 mt-4">
+                    <button type="button" id="cancelAppointmentBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors">Cancelar</button>
+                    <button type="submit" id="saveAppointmentBtn" class="bg-[#f57c00] text-white rounded-xl py-2 px-4 hover:bg-[#ef6c00] transition-colors">Agendar</button>
+                </div>
+            </form>
+        </div>
+    </div>
     
     <div id="loadingIndicator" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-50">
         <div class="animate-spin rounded-full h-32 w-32 border-t-4 border-b-4 border-cyan-400"></div>
@@ -498,6 +514,11 @@
         const messageTitle = document.getElementById('messageTitle');
         const messageContent = document.getElementById('messageContent');
         const messageOkBtn = document.getElementById('messageOkBtn');
+        const appointmentModal = document.getElementById('appointmentModal');
+        const appointmentForm = document.getElementById('appointmentForm');
+        const appointmentPatientInput = document.getElementById('appointmentPatientInput');
+        const appointmentDateInput = document.getElementById('appointmentDateInput');
+        const cancelAppointmentBtn = document.getElementById('cancelAppointmentBtn');
 
         let patients = [];
         let selectedPatientId = null;
@@ -1072,11 +1093,21 @@
             }
         }
 
-        async function addAppointment(patientId, appointmentDate) {
-            if (!patientId || !appointmentDate) return;
+        async function handleAppointmentForm(e) {
+            e.preventDefault();
             loadingIndicator.classList.remove('hidden');
+            const patientName = appointmentPatientInput.value.trim();
+            const appointmentDate = appointmentDateInput.value;
+
+            const patient = patients.find(p => `${p.name} ${p.lastName}`.toLowerCase() === patientName.toLowerCase());
+            if (!patient) {
+                showMessageModal('Error', 'Paciente no encontrado. Por favor, asegúrate de que el nombre sea correcto.');
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
             try {
-                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patientId}`);
+                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patient.id}`);
                 const newAppointment = {
                     date: appointmentDate,
                     timestamp: Date.now()
@@ -1086,6 +1117,8 @@
                 const updatedAppointments = [...currentAppointments, newAppointment];
                 await updateDoc(patientRef, { appointments: updatedAppointments, lastEntry: Date.now() });
                 showMessageModal('Éxito', 'Cita agendada con éxito.');
+                appointmentModal.classList.add('hidden');
+                appointmentForm.reset();
             } catch (e) {
                 console.error("Error al agendar la cita:", e);
                 showMessageModal('Error', 'Hubo un problema al agendar la cita.');
@@ -1113,30 +1146,25 @@
         });
 
         addAppointmentFromCalendarBtn.addEventListener('click', () => {
-            const patientName = prompt('Agendar cita. Ingresa el nombre completo del paciente:');
-            if (patientName) {
-                const patient = patients.find(p => `${p.name} ${p.lastName}`.toLowerCase() === patientName.toLowerCase());
-                if (patient) {
-                    const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
-                    if (appointmentDate) {
-                        addAppointment(patient.id, appointmentDate);
-                    }
-                } else {
-                    showMessageModal('Error', 'Paciente no encontrado. Por favor, asegúrate de que el nombre sea correcto.');
-                }
-            }
+            appointmentPatientInput.value = '';
+            appointmentDateInput.value = '';
+            appointmentModal.classList.remove('hidden');
         });
         
         addAppointmentFromPatientBtn.addEventListener('click', () => {
             if (!selectedPatientId) return;
             const patient = patients.find(p => p.id === selectedPatientId);
             if (patient) {
-                const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
-                if (appointmentDate) {
-                    addAppointment(selectedPatientId, appointmentDate);
-                }
+                appointmentPatientInput.value = `${patient.name} ${patient.lastName || ''}`;
+                appointmentDateInput.value = '';
+                appointmentModal.classList.remove('hidden');
             }
         });
+
+        cancelAppointmentBtn.addEventListener('click', () => {
+            appointmentModal.classList.add('hidden');
+        });
+        appointmentForm.addEventListener('submit', handleAppointmentForm);
 
         async function generateQuickSummary() {
             aiQuickSummaryEl.textContent = 'Generando resumen...';
