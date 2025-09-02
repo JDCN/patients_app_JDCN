@@ -83,18 +83,36 @@
             color: #211531;
             font-weight: bold;
         }
+        /* Estilos para el modal personalizado */
+        .custom-modal {
+            background-color: #55446f;
+            border-radius: 2rem;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            border: 2px solid #a37dfd;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center justify-center">
 
     <!-- Modal de confirmación para eliminar paciente -->
     <div id="deleteModal" class="hidden fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-75 flex items-center justify-center">
-        <div class="bg-[#55446f] p-6 rounded-3xl shadow-xl w-full max-w-sm mx-auto border-2 border-[#a37dfd]">
+        <div class="custom-modal p-6 w-full max-w-sm mx-auto">
             <h3 class="text-lg font-bold text-[#ff9100] mb-4">Confirmar Eliminación</h3>
             <p class="text-[#a37dfd] mb-6">¿Estás seguro de que quieres eliminar a este paciente? Esta acción es irreversible.</p>
             <div class="flex justify-end space-x-4">
                 <button id="cancelDeleteBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors">Cancelar</button>
                 <button id="confirmDeleteBtn" class="bg-[#f57c00] text-white rounded-xl py-2 px-4 hover:bg-[#ef6c00] transition-colors">Eliminar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para mensajes de alerta y confirmación personalizados -->
+    <div id="messageModal" class="hidden fixed inset-0 z-50 overflow-auto bg-gray-800 bg-opacity-75 flex items-center justify-center">
+        <div class="custom-modal p-6 w-full max-w-sm mx-auto">
+            <h3 id="messageTitle" class="text-lg font-bold text-[#ff9100] mb-4"></h3>
+            <p id="messageContent" class="text-[#a37dfd] mb-6"></p>
+            <div class="flex justify-end space-x-4">
+                <button id="messageOkBtn" class="bg-[#f57c00] text-white rounded-xl py-2 px-4 hover:bg-[#ef6c00] transition-colors">Aceptar</button>
             </div>
         </div>
     </div>
@@ -117,9 +135,6 @@
         </form>
         <button id="toggleAuthBtn" class="w-full text-center mt-4 text-[#a37dfd] hover:text-[#ff9100] transition-colors text-sm">
             Crear cuenta
-        </button>
-        <button id="resendVerificationBtn" class="w-full text-center mt-2 text-cyan-400 hover:text-cyan-200 transition-colors text-sm hidden">
-            Reenviar correo de verificación
         </button>
         <button id="forgotPasswordBtn" class="w-full text-center mt-2 text-[#a37dfd] hover:text-[#ff9100] transition-colors text-sm">
             ¿Olvidaste tu contraseña?
@@ -274,14 +289,14 @@
                 </div>
                 
                 <div class="flex justify-center mt-6">
-                    <button id="logoutBtn" class="lcars-btn-secondary text-white font-semibold py-2 px-6 hover:bg-[#ef6c00] transition-colors">
+                    <button id="logoutBtn" class="lcars-btn text-white font-semibold py-2 px-6 hover:bg-[#ef6c00] transition-colors">
                         Cerrar Sesión
                     </button>
                 </div>
             </div>
 
             <!-- Formulario de Nuevo Paciente -->
-            <div id="newPatientFormPanel" class="w-full max-w-4xl lcars-panel p-4 hidden">
+            <div id="newPatientFormPanel" class="md:col-span-2 w-full max-w-4xl lcars-panel p-4 hidden">
                 <h2 id="formTitle" class="text-xl font-semibold mb-4 lcars-text">Añadir Nuevo Paciente</h2>
                 <form id="newPatientForm" class="space-y-4">
                     <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
@@ -385,24 +400,15 @@
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification, sendPasswordResetEmail, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, getDoc, onSnapshot, updateDoc, deleteDoc, query, setDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // Global variables provided by the environment
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        // REEMPLAZA ESTO CON TUS CREDENCIALES DE FIREBASE
-        const firebaseConfig = {
-  apiKey: "AIzaSyDXLi2seXlLz-JyOMB_gY68m-7qDx7bssU",
-  authDomain: "patients-jdcn-app.firebaseapp.com",
-  projectId: "patients-jdcn-app",
-  storageBucket: "patients-jdcn-app.firebasestorage.app",
-  messagingSenderId: "5231907336",
-  appId: "1:5231907336:web:58961f63cc4eaf1f1df7bd",
-  measurementId: "G-F8LX06SG7N"
-};
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
         const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
+        
         let db, auth, storage, userId;
         const patientsRef = (uid) => collection(db, `artifacts/${appId}/users/${uid}/patients`);
         
@@ -418,7 +424,6 @@
         const passwordInput = document.getElementById('passwordInput');
         const authErrorEl = document.getElementById('authError');
         const logoutBtn = document.getElementById('logoutBtn');
-        
         const userIdDisplay = document.getElementById('userIdDisplay');
         const searchInput = document.getElementById('searchInput');
         const patientSuggestionsEl = document.getElementById('patientSuggestions');
@@ -438,12 +443,10 @@
         const patientCityInput = document.getElementById('patientCityInput');
         const patientContactInput = document.getElementById('patientContactInput');
         const patientBirthplaceInput = document.getElementById('patientBirthplaceInput');
-        
         const patientPathologicalHistoryInput = document.getElementById('patientPathologicalHistoryInput');
         const patientFamilyHistoryInput = document.getElementById('patientFamilyHistoryInput');
         const patientPharmacologicalHistoryInput = document.getElementById('patientPharmacologicalHistoryInput');
-        const patientSurgicalHistoryInput = document.getElementById('patientPatientSurgicalHistoryInput');
-
+        const patientSurgicalHistoryInput = document.getElementById('patientSurgicalHistoryInput');
         const patientCurrentIllnessInput = document.getElementById('patientCurrentIllnessInput');
         const patientTreatmentsInput = document.getElementById('patientTreatmentsInput');
         const patientAnalysisInput = document.getElementById('patientAnalysisInput');
@@ -461,43 +464,55 @@
         const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
         const aiQuickSummarySection = document.getElementById('aiQuickSummarySection');
         const aiQuickSummaryEl = document.getElementById('aiQuickSummary');
-
         const patientAttachmentsEl = document.getElementById('patientAttachments');
         const attachmentFileInput = document.getElementById('attachmentFileInput');
         const addAttachmentBtn = document.getElementById('addAttachmentBtn');
         const uploadProgress = document.getElementById('uploadProgress');
         const progressBar = document.getElementById('progressBar');
-
         const generateClinicalSummaryBtn = document.getElementById('generateClinicalSummaryBtn');
         const generatePatientSummaryBtn = document.getElementById('generatePatientSummaryBtn');
         const aiClinicalSummarySection = document.getElementById('aiClinicalSummarySection');
         const aiPatientSummarySection = document.getElementById('aiPatientSummarySection');
         const aiPatientSummaryEl = document.getElementById('aiPatientSummary');
-        
         const loadingIndicator = document.getElementById('loadingIndicator');
-
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
-
         const calendarGrid = document.getElementById('calendarGrid');
         const currentMonthYearEl = document.getElementById('currentMonthYear');
         const prevMonthBtn = document.getElementById('prevMonthBtn');
         const nextMonthBtn = document.getElementById('nextMonthBtn');
         const addAppointmentFromCalendarBtn = document.getElementById('addAppointmentFromCalendarBtn');
+        const patientAppointmentsEl = document.getElementById('patientAppointments');
+        const addAppointmentFromPatientBtn = document.getElementById('addAppointmentFromPatientBtn');
+        const messageModal = document.getElementById('messageModal');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageContent = document.getElementById('messageContent');
+        const messageOkBtn = document.getElementById('messageOkBtn');
 
         let patients = [];
         let selectedPatientId = null;
         let isEditing = false;
         let isLoginState = true;
-
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
 
+        // Custom Modal functions
+        function showMessageModal(title, message) {
+            messageTitle.textContent = title;
+            messageContent.textContent = message;
+            messageModal.classList.remove('hidden');
+        }
+
+        messageOkBtn.addEventListener('click', () => {
+            messageModal.classList.add('hidden');
+        });
+
         // Initialize Firebase
-        function initializeAppAndAuth() {
-            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.apiKey) {
-                authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase.';
+        window.onload = function () {
+            if (Object.keys(firebaseConfig).length === 0) {
+                authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase. La aplicación no funcionará.';
                 authErrorEl.classList.remove('hidden');
+                console.error("Firebase config not found.");
                 return;
             }
             try {
@@ -505,35 +520,36 @@
                 db = getFirestore(app);
                 auth = getAuth(app);
                 storage = getStorage(app);
-
-                onAuthStateChanged(auth, async (user) => {
-                    if (user) {
-                        if (user.emailVerified) {
-                            userId = user.uid;
-                            userIdDisplay.textContent = `Tu ID de usuario: ${userId}`;
-                            authPanel.classList.add('hidden');
-                            mainPanel.classList.remove('hidden');
-                            setupRealtimeListener();
-                            renderCalendar();
-                        } else {
-                            authErrorEl.textContent = 'Por favor, verifica tu correo para iniciar sesión.';
-                            authErrorEl.classList.remove('hidden');
-                            authPanel.classList.remove('hidden');
-                            mainPanel.classList.add('hidden');
-                            signOut(auth);
-                        }
-                    } else {
-                        userId = null;
-                        authPanel.classList.remove('hidden');
-                        mainPanel.classList.add('hidden');
-                    }
-                });
-
+                setupAuthListener();
             } catch (e) {
                 authErrorEl.textContent = 'Error al inicializar Firebase. Revisa tus credenciales.';
                 authErrorEl.classList.remove('hidden');
                 console.error("Error initializing Firebase:", e);
             }
+        };
+
+        function setupAuthListener() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    if (initialAuthToken) {
+                        try {
+                            await signInWithCustomToken(auth, initialAuthToken);
+                        } catch (error) {
+                            console.error("Error signing in with custom token:", error);
+                        }
+                    }
+                    userId = user.uid;
+                    userIdDisplay.textContent = `Tu ID de usuario: ${userId}`;
+                    authPanel.classList.add('hidden');
+                    mainPanel.classList.remove('hidden');
+                    setupRealtimeListener();
+                    renderCalendar();
+                } else {
+                    userId = null;
+                    authPanel.classList.remove('hidden');
+                    mainPanel.classList.add('hidden');
+                }
+            });
         }
         
         // Firebase Auth functions
@@ -541,20 +557,16 @@
             e.preventDefault();
             authErrorEl.classList.add('hidden');
             loadingIndicator.classList.remove('hidden');
-
             const email = emailInput.value;
             const password = passwordInput.value;
-
             try {
                 if (isLoginState) {
                     await signInWithEmailAndPassword(auth, email, password);
                 } else {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                     await sendEmailVerification(userCredential.user);
-                    authErrorEl.textContent = 'Cuenta creada. Por favor, verifica tu correo electrónico para iniciar sesión.';
-                    authErrorEl.classList.remove('hidden');
+                    showMessageModal('Cuenta Creada', 'Por favor, verifica tu correo electrónico para iniciar sesión.');
                     authForm.reset();
-                    isLoginState = true;
                     toggleAuthMode();
                 }
             } catch (error) {
@@ -579,6 +591,8 @@
                     return 'La contraseña debe tener al menos 6 caracteres.';
                 case 'auth/network-request-failed':
                     return 'Error de conexión. Revisa tu conexión a internet.';
+                case 'auth/missing-password':
+                    return 'Por favor, introduce una contraseña.';
                 default:
                     return `Ocurrió un error: ${errorCode}`;
             }
@@ -619,18 +633,15 @@
             authErrorEl.classList.add('hidden');
             const email = emailInput.value;
             if (!email) {
-                authErrorEl.textContent = 'Por favor, ingresa tu correo para restablecer la contraseña.';
-                authErrorEl.classList.remove('hidden');
+                showMessageModal('Error', 'Por favor, ingresa tu correo para restablecer la contraseña.');
                 return;
             }
             loadingIndicator.classList.remove('hidden');
             try {
                 await sendPasswordResetEmail(auth, email);
-                authErrorEl.textContent = 'Se ha enviado un correo para restablecer tu contraseña. Revisa tu bandeja de entrada.';
-                authErrorEl.classList.remove('hidden');
+                showMessageModal('Correo Enviado', 'Se ha enviado un correo para restablecer tu contraseña. Revisa tu bandeja de entrada.');
             } catch (error) {
-                authErrorEl.textContent = getAuthErrorMessage(error.code);
-                authErrorEl.classList.remove('hidden');
+                showMessageModal('Error', getAuthErrorMessage(error.code));
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -644,6 +655,7 @@
 
         // Real-time listener for patients collection
         function setupRealtimeListener() {
+            if (!db || !userId) return;
             onSnapshot(patientsRef(userId), (snapshot) => {
                 patients = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderPatientList(patients);
@@ -655,12 +667,12 @@
                         renderPatientDetails(patient);
                     } else {
                         selectedPatientId = null;
-                        patientDetailsPanel.classList.add('hidden');
-                        showNewPatientFormBtn.classList.remove('hidden');
+                        closePatientDetails();
                     }
                 }
             }, (error) => {
-                console.error("Error al escuchar los datos del paciente. Esto es a menudo un problema de permisos en Firebase. Asegúrate de que las reglas de seguridad de Firestore permitan el acceso de tu usuario:", error);
+                console.error("Error al escuchar los datos del paciente:", error);
+                showMessageModal('Error de Conexión', 'No se pudieron cargar los datos. Revisa tu conexión a internet o las reglas de seguridad de Firestore.');
             });
         }
 
@@ -676,7 +688,9 @@
         // Render functions
         function renderPatientList(patientList) {
             patientListEl.innerHTML = '';
-            patientList.forEach(patient => {
+            // Sort patients by last entry date, most recent first
+            const sortedPatients = patientList.sort((a, b) => (b.lastEntry || 0) - (a.lastEntry || 0));
+            sortedPatients.forEach(patient => {
                 const li = document.createElement('li');
                 li.className = 'bg-[#55446f] p-3 rounded-2xl shadow-sm cursor-pointer hover:bg-[#6b588a] transition-colors flex justify-between items-center border-2 border-[#a37dfd]';
                 const lastEntryDate = patient.lastEntry ? new Date(patient.lastEntry).toLocaleDateString('es-CO') : 'Sin entradas';
@@ -709,7 +723,9 @@
             
             patientNotesEl.innerHTML = '';
             if (patient.notes && patient.notes.length > 0) {
-                patient.notes.forEach(note => {
+                // Sort notes by timestamp, most recent first
+                const sortedNotes = patient.notes.sort((a, b) => b.timestamp - a.timestamp);
+                sortedNotes.forEach(note => {
                     const noteDiv = document.createElement('div');
                     noteDiv.className = `p-3 rounded-2xl ${note.isPriority ? 'bg-[#f57c00] border border-[#ef6c00]' : 'bg-[#4b3d68]'}`;
                     noteDiv.innerHTML = `
@@ -717,7 +733,7 @@
                         <p class="text-xs text-[#a37dfd] mt-1">${new Date(note.timestamp).toLocaleString()}</p>
                         ${note.isPriority ? '<p class="text-xs text-white font-semibold mt-1">Nota Prioritaria</p>' : ''}
                     `;
-                    patientNotesEl.prepend(noteDiv);
+                    patientNotesEl.appendChild(noteDiv);
                 });
             } else {
                 patientNotesEl.innerHTML = '<p class="text-[#a37dfd]">No hay notas para este paciente.</p>';
@@ -741,13 +757,40 @@
             } else {
                 patientAttachmentsEl.innerHTML = '<p class="text-[#a37dfd]">No hay archivos adjuntos para este paciente.</p>';
             }
+
+            patientAppointmentsEl.innerHTML = '';
+            if (patient.appointments && patient.appointments.length > 0) {
+                // Sort appointments by date, most recent first
+                const sortedAppointments = patient.appointments.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                sortedAppointments.forEach(appointment => {
+                    const apptDiv = document.createElement('div');
+                    apptDiv.className = 'p-3 rounded-2xl bg-[#4b3d68] border-2 border-[#a37dfd] text-white';
+                    apptDiv.innerHTML = `
+                        <p><strong>Fecha:</strong> ${appointment.date}</p>
+                        <p class="text-xs text-[#a37dfd]">Agendada: ${new Date(appointment.timestamp).toLocaleString()}</p>
+                    `;
+                    patientAppointmentsEl.appendChild(apptDiv);
+                });
+            } else {
+                patientAppointmentsEl.innerHTML = '<p class="text-[#a37dfd]">No hay citas agendadas.</p>';
+            }
             
             aiClinicalSummarySection.classList.add('hidden');
             aiPatientSummarySection.classList.add('hidden');
+            aiQuickSummaryEl.textContent = 'Generando resumen...';
 
             patientDetailsPanel.classList.remove('hidden');
             newPatientFormPanel.classList.add('hidden');
             showNewPatientFormBtn.classList.add('hidden');
+        }
+
+        function closePatientDetails() {
+            selectedPatientId = null;
+            patientDetailsPanel.classList.add('hidden');
+            showNewPatientFormBtn.classList.remove('hidden');
+            mainPanel.classList.remove('grid-cols-2');
+            mainPanel.classList.add('grid-cols-3');
+            calendarPanel.classList.remove('hidden');
         }
 
         // Logic
@@ -772,7 +815,7 @@
                 name: patientNameInput.value,
                 lastName: patientLastNameInput.value,
                 dob: patientDobInput.value,
-                age: patientAgeDisplay.textContent,
+                age: calculateAge(patientDobInput.value),
                 address: patientAddressInput.value,
                 city: patientCityInput.value,
                 contact: patientContactInput.value,
@@ -789,15 +832,17 @@
             };
 
             try {
-                if (isEditing) {
+                if (isEditing && selectedPatientId) {
                     const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
                     await updateDoc(patientRef, patientData);
+                    showMessageModal('Éxito', 'Paciente actualizado con éxito.');
                 } else {
                     patientData.notes = [];
                     patientData.attachments = [];
                     patientData.appointments = [];
                     patientData.lastEntry = Date.now();
                     await addDoc(patientsRef(userId), patientData);
+                    showMessageModal('Éxito', 'Paciente creado con éxito.');
                 }
                 
                 newPatientForm.reset();
@@ -814,6 +859,7 @@
                 mainPanel.classList.add('grid-cols-3');
             } catch (e) {
                 console.error("Error saving patient:", e);
+                showMessageModal('Error', 'Hubo un problema al guardar el paciente. Revisa la consola para más detalles.');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -831,18 +877,15 @@
                     timestamp: Date.now(),
                     isPriority: priorityNoteCheckbox.checked
                 };
-
                 const patientDoc = await getDoc(patientRef);
                 const currentNotes = patientDoc.data().notes || [];
                 const updatedNotes = [...currentNotes, newNote];
-
                 await updateDoc(patientRef, { notes: updatedNotes, lastEntry: Date.now() });
-
                 newNoteInput.value = '';
                 priorityNoteCheckbox.checked = false;
-
             } catch (e) {
                 console.error("Error adding note:", e);
+                showMessageModal('Error', 'Hubo un problema al añadir la nota.');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -850,11 +893,15 @@
 
         async function addAttachment() {
             const file = attachmentFileInput.files[0];
-            if (!file || !selectedPatientId) return;
+            if (!file || !selectedPatientId) {
+                showMessageModal('Error', 'Por favor, selecciona un archivo para subir.');
+                return;
+            }
             
             uploadProgress.classList.remove('hidden');
+            progressBar.style.width = '0%';
             const fileName = file.name;
-            const storagePath = `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}/${fileName}`;
+            const storagePath = `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}/attachments/${fileName}`;
             const storageRef = ref(storage, storagePath);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -866,6 +913,7 @@
                 (error) => {
                     console.error("Error uploading file:", error);
                     uploadProgress.classList.add('hidden');
+                    showMessageModal('Error de Subida', 'Hubo un problema al subir el archivo.');
                 },
                 async () => {
                     try {
@@ -885,10 +933,12 @@
                         attachmentFileInput.value = '';
                         uploadProgress.classList.add('hidden');
                         progressBar.style.width = '0%';
+                        showMessageModal('Éxito', 'Archivo subido con éxito.');
                         
                     } catch (e) {
                         console.error("Error adding attachment URL:", e);
                         uploadProgress.classList.add('hidden');
+                        showMessageModal('Error', 'Hubo un problema al guardar la URL del archivo.');
                     }
                 }
             );
@@ -898,7 +948,6 @@
             isEditing = true;
             formTitleEl.textContent = 'Editar Paciente';
             savePatientBtn.textContent = 'Actualizar Paciente';
-
             const patient = patients.find(p => p.id === selectedPatientId);
             if (patient) {
                 patientNameInput.value = patient.name || '';
@@ -909,19 +958,18 @@
                 patientCityInput.value = patient.city || '';
                 patientContactInput.value = patient.contact || '';
                 patientBirthplaceInput.value = patient.birthplace || '';
-                
                 patientPathologicalHistoryInput.value = patient.history?.pathological || '';
                 patientFamilyHistoryInput.value = patient.history?.family || '';
                 patientPharmacologicalHistoryInput.value = patient.history?.pharmacological || '';
                 patientSurgicalHistoryInput.value = patient.history?.surgical || '';
-
                 patientCurrentIllnessInput.value = patient.currentIllness || '';
                 patientTreatmentsInput.value = patient.treatments || '';
                 patientAnalysisInput.value = patient.analysis || '';
+                patientDetailsPanel.classList.add('hidden');
+                newPatientFormPanel.classList.remove('hidden');
+            } else {
+                showMessageModal('Error', 'No se encontró el paciente para editar.');
             }
-
-            patientDetailsPanel.classList.add('hidden');
-            newPatientFormPanel.classList.remove('hidden');
         }
 
         async function deletePatient() {
@@ -935,9 +983,12 @@
                 if (selectedPatientId) {
                     const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
                     await deleteDoc(patientRef);
+                    showMessageModal('Éxito', 'Paciente eliminado con éxito.');
+                    closePatientDetails();
                 }
             } catch (e) {
                 console.error("Error deleting patient:", e);
+                showMessageModal('Error', 'Hubo un problema al eliminar el paciente.');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -958,7 +1009,7 @@
             }
             return `${age} años`;
         }
-        
+
         // Calendar logic
         function renderCalendar() {
             const today = new Date();
@@ -980,8 +1031,6 @@
                 const dayEl = document.createElement('div');
                 dayEl.classList.add('py-2', 'rounded-full', 'cursor-pointer', 'hover:bg-[#4b3d68]', 'transition-colors', 'calendar-day');
                 dayEl.textContent = day;
-                
-                // Check for appointments
                 const dateToCheck = new Date(currentYear, currentMonth, day).toISOString().slice(0, 10);
                 const hasAppointment = patients.some(p => p.appointments && p.appointments.some(a => a.date === dateToCheck));
                 if (hasAppointment) {
@@ -989,17 +1038,23 @@
                 }
                 
                 dayEl.addEventListener('click', () => {
-                    // Show appointments for the day
-                    console.log('Citas para el día:', dateToCheck);
+                    const appointmentsForDay = patients.flatMap(p => 
+                        p.appointments?.filter(a => a.date === dateToCheck).map(a => 
+                            `Cita para ${p.name} ${p.lastName} el ${a.date}`
+                        ) || []
+                    );
+                    if (appointmentsForDay.length > 0) {
+                        showMessageModal('Citas del Día', appointmentsForDay.join('\n'));
+                    } else {
+                        showMessageModal('Citas del Día', 'No hay citas agendadas para este día.');
+                    }
                 });
                 calendarGrid.appendChild(dayEl);
             }
         }
-        
-        // Appointment scheduling logic
+
         async function addAppointment(patientId, appointmentDate) {
             if (!patientId || !appointmentDate) return;
-            
             loadingIndicator.classList.remove('hidden');
             try {
                 const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patientId}`);
@@ -1010,10 +1065,11 @@
                 const patientDoc = await getDoc(patientRef);
                 const currentAppointments = patientDoc.data().appointments || [];
                 const updatedAppointments = [...currentAppointments, newAppointment];
-                await updateDoc(patientRef, { appointments: updatedAppointments });
-                console.log('Cita agendada con éxito para el paciente', patientId);
+                await updateDoc(patientRef, { appointments: updatedAppointments, lastEntry: Date.now() });
+                showMessageModal('Éxito', 'Cita agendada con éxito.');
             } catch (e) {
                 console.error("Error al agendar la cita:", e);
+                showMessageModal('Error', 'Hubo un problema al agendar la cita.');
             } finally {
                 loadingIndicator.classList.add('hidden');
             }
@@ -1047,24 +1103,35 @@
                         addAppointment(patient.id, appointmentDate);
                     }
                 } else {
-                    console.error('Paciente no encontrado.');
+                    showMessageModal('Error', 'Paciente no encontrado. Por favor, asegúrate de que el nombre sea correcto.');
+                }
+            }
+        });
+        
+        addAppointmentFromPatientBtn.addEventListener('click', () => {
+            if (!selectedPatientId) return;
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (patient) {
+                const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
+                if (appointmentDate) {
+                    addAppointment(selectedPatientId, appointmentDate);
                 }
             }
         });
 
         async function generateQuickSummary() {
             aiQuickSummaryEl.textContent = 'Generando resumen...';
-            
             const patient = patients.find(p => p.id === selectedPatientId);
-            if (!patient || !patient.notes || patient.notes.length === 0) {
-                aiQuickSummaryEl.textContent = 'No hay notas para generar un resumen rápido.';
+            if (!patient || (!patient.notes || patient.notes.length === 0) && (!patient.history && !patient.currentIllness && !patient.treatments && !patient.analysis)) {
+                aiQuickSummaryEl.textContent = 'No hay suficiente información para generar un resumen rápido.';
                 return;
             }
 
-            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
+            const allNotes = (patient.notes || []).map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
             const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
-            
-            const userQuery = `Basado en la siguiente información y las notas de este paciente, genera un resumen muy breve y conciso de su estado actual, lo más importante de su caso y cualquier pendiente o próxima acción. Información: ${historyText}\nNotas: ${allNotes}`;
+            const clinicalData = `Enfermedad Actual: ${patient.currentIllness || 'N/A'}\nTratamientos: ${patient.treatments || 'N/A'}\nAnálisis: ${patient.analysis || 'N/A'}\n`;
+
+            const userQuery = `Basado en la siguiente información y las notas de este paciente, genera un resumen muy breve y conciso de su estado actual, lo más importante de su caso y cualquier pendiente o próxima acción. Información del caso: ${historyText}\n${clinicalData}\nNotas: ${allNotes}`;
             
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
@@ -1107,34 +1174,62 @@
 
                 } catch (error) {
                     console.error("Error generating quick summary:", error);
-                    aiQuickSummaryEl.textContent = 'Error al generar el resumen rápido. Inténtalo de nuevo.';
-                    break;
+                    aiQuickSummaryEl.textContent = 'Error al generar el resumen. Por favor, inténtalo de nuevo más tarde.';
+                    success = true;
                 }
             }
         }
-        
-        async function fetchGeminiSummary(prompt, targetElement, systemPrompt, sectionElement) {
-            loadingIndicator.classList.remove('hidden');
-            sectionElement.classList.remove('hidden');
-            targetElement.textContent = 'Generando resumen...';
 
+        async function generateClinicalSummary() {
+            loadingIndicator.classList.remove('hidden');
+            aiClinicalSummarySection.classList.remove('hidden');
+            const aiClinicalSummaryEl = document.getElementById('aiClinicalSummary');
+            aiClinicalSummaryEl.textContent = 'Generando resumen clínico detallado...';
+            
             const patient = patients.find(p => p.id === selectedPatientId);
-            if (!patient || !patient.notes || patient.notes.length === 0) {
-                targetElement.textContent = 'No hay notas para generar un resumen.';
+            if (!patient || (!patient.history && !patient.currentIllness && !patient.treatments && !patient.analysis)) {
+                aiClinicalSummaryEl.textContent = 'No hay suficiente información para generar un resumen clínico.';
                 loadingIndicator.classList.add('hidden');
                 return;
             }
 
-            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
+            const allNotes = (patient.notes || []).map(note => `- ${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
             const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
+            const clinicalData = `Enfermedad Actual: ${patient.currentIllness || 'N/A'}\nTratamientos: ${patient.treatments || 'N/A'}\nAnálisis: ${patient.analysis || 'N/A'}\n`;
 
-            const userQuery = prompt + historyText + allNotes;
+            const userQuery = `Basado en la siguiente información de un paciente, genera un resumen clínico detallado y estructurado. Debe incluir un resumen de los antecedentes, la enfermedad actual, los tratamientos y el análisis del caso. Toda la información debe ser directamente de los datos proporcionados.
+            
+            Información del paciente:
+            Nombre: ${patient.name} ${patient.lastName || ''}
+            Fecha de Nacimiento: ${patient.dob}
+            Lugar de Nacimiento: ${patient.birthplace || 'N/A'}
+            Ciudad de Residencia: ${patient.city || 'N/A'}
+            Contacto: ${patient.contact || 'N/A'}
+
+            Antecedentes:
+            - Patológicos: ${patient.history?.pathological || 'N/A'}
+            - Familiares: ${patient.history?.family || 'N/A'}
+            - Farmacológicos: ${patient.history?.pharmacological || 'N/A'}
+            - Quirúrgicos: ${patient.history?.surgical || 'N/A'}
+            
+            Enfermedad Actual:
+            ${patient.currentIllness || 'N/A'}
+            
+            Tratamientos:
+            ${patient.treatments || 'N/A'}
+            
+            Análisis:
+            ${patient.analysis || 'N/A'}
+            
+            Notas adicionales del caso:
+            ${allNotes || 'No hay notas.'}
+            `;
             
             const payload = {
                 contents: [{ parts: [{ text: userQuery }] }],
                 tools: [{ "google_search": {} }],
                 systemInstruction: {
-                    parts: [{ text: systemPrompt }]
+                    parts: [{ text: "Eres un médico experimentado y tu única tarea es generar resúmenes clínicos detallados y estructurados. Debes utilizar un lenguaje formal y profesional, y apegarte estrictamente a la información proporcionada. No inventes ni añadas información. El resumen debe estar bien organizado con títulos y viñetas." }]
                 }
             };
 
@@ -1165,568 +1260,155 @@
                     }
                     
                     const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
-                    targetElement.textContent = text;
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen clínico.';
+                    aiClinicalSummaryEl.textContent = text;
                     success = true;
-
                 } catch (error) {
-                    console.error("Error generating summary:", error);
-                    targetElement.textContent = 'Error al generar el resumen. Inténtalo de nuevo más tarde.';
-                    break;
+                    console.error("Error generating clinical summary:", error);
+                    aiClinicalSummaryEl.textContent = 'Error al generar el resumen clínico. Por favor, inténtalo de nuevo más tarde.';
+                    success = true;
+                } finally {
+                    loadingIndicator.classList.add('hidden');
                 }
             }
-
-            loadingIndicator.classList.add('hidden');
-        }
-
-        async function generateClinicalSummary() {
-            const prompt = `Basado en las siguientes notas de un paciente, genera un resumen conciso y profesional de su estado actual. No incluyas un título. Usa un tono médico. Notas: `;
-            const systemPrompt = "Eres un asistente médico experto. Tu única tarea es resumir información clínica de manera profesional.";
-            aiPatientSummarySection.classList.add('hidden');
-            fetchGeminiSummary(prompt, aiClinicalSummaryEl, systemPrompt, aiClinicalSummarySection);
         }
 
         async function generatePatientSummary() {
-            const prompt = `Basado en las siguientes notas clínicas de un paciente, genera un resumen de su estado de salud en un lenguaje sencillo y comprensible para el paciente. Evita la jerga médica. El resumen debe ser amable y tranquilizador. Notas: `;
-            const systemPrompt = "Eres un asistente que genera resúmenes médicos fáciles de entender para los pacientes. Sé conciso y usa un lenguaje simple.";
-            aiPatientSummarySection.classList.add('hidden');
-            fetchGeminiSummary(prompt, aiPatientSummaryEl, systemPrompt, aiPatientSummarySection);
+            loadingIndicator.classList.remove('hidden');
+            aiPatientSummarySection.classList.remove('hidden');
+            const aiPatientSummaryEl = document.getElementById('aiPatientSummary');
+            aiPatientSummaryEl.textContent = 'Generando resumen para el paciente...';
+
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (!patient || (!patient.currentIllness && !patient.treatments)) {
+                aiPatientSummaryEl.textContent = 'No hay suficiente información para generar un resumen para el paciente.';
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+
+            const userQuery = `Eres un asistente médico y tu tarea es explicarle a un paciente su condición médica de manera clara, simple y empática. Debes usar un lenguaje sencillo, no médico, y un tono tranquilizador.
+            
+            Información del paciente:
+            Nombre: ${patient.name}
+            Enfermedad Actual: ${patient.currentIllness || 'No especificada'}
+            Tratamientos: ${patient.treatments || 'No especificados'}
+
+            Notas adicionales del caso (para tu referencia, no para ser mostradas al paciente):
+            Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}
+            Notas del médico: ${(patient.notes || []).map(note => note.text).join('\n') || 'No hay notas.'}
+
+            Genera un resumen para el paciente, en primera persona, como si fueras su médico, explicando de manera sencilla su situación de salud, los tratamientos que debe seguir y cualquier recomendación importante.
+            `;
+            
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: "Eres un asistente médico experto. Tu única tarea es explicarle a un paciente su condición de manera clara, simple y empática. Debes utilizar un lenguaje sencillo, no médico, y un tono tranquilizador. Evita el uso de jerga. Preséntalo como una nota del médico al paciente." }]
+                }
+            };
+            
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            let retries = 0;
+            const maxRetries = 5;
+            let success = false;
+
+            while (retries < maxRetries && !success) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429) {
+                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
+                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
+                            await new Promise(res => setTimeout(res, delay));
+                            retries++;
+                            continue;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen para el paciente.';
+                    aiPatientSummaryEl.textContent = text;
+                    success = true;
+                } catch (error) {
+                    console.error("Error generating patient summary:", error);
+                    aiPatientSummaryEl.textContent = 'Error al generar el resumen para el paciente. Por favor, inténtalo de nuevo más tarde.';
+                    success = true;
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            }
         }
 
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.add('hidden'));
-
-                button.classList.add('active');
-                document.getElementById(button.dataset.tab + 'Tab').classList.remove('hidden');
-            });
-        });
-
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredPatients = patients.filter(patient => {
-                const name = (patient.name || '').toLowerCase();
-                const lastName = (patient.lastName || '').toLowerCase();
-                const city = (patient.city || '').toLowerCase();
-                return name.includes(searchTerm) || lastName.includes(searchTerm) || city.includes(searchTerm);
-            });
-            renderPatientList(filteredPatients);
-        });
-
+        // Event listeners
+        authForm.addEventListener('submit', handleAuth);
+        toggleAuthBtn.addEventListener('click', toggleAuthMode);
+        forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+        logoutBtn.addEventListener('click', logout);
         showNewPatientFormBtn.addEventListener('click', () => {
-            newPatientFormPanel.classList.remove('hidden');
             patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.add('hidden');
-            newPatientForm.reset();
-            patientAgeDisplay.textContent = '';
+            newPatientFormPanel.classList.remove('hidden');
             isEditing = false;
             formTitleEl.textContent = 'Añadir Nuevo Paciente';
             savePatientBtn.textContent = 'Guardar Paciente';
-            
-            calendarPanel.classList.add('hidden');
-        });
-        
-        cancelNewPatientBtn.addEventListener('click', () => {
-            newPatientFormPanel.classList.add('hidden');
-            patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.remove('hidden');
             newPatientForm.reset();
             patientAgeDisplay.textContent = '';
-            isEditing = false;
-            
-            calendarPanel.classList.remove('hidden');
+            // Hide calendar
+            calendarPanel.classList.add('hidden');
+            mainPanel.classList.remove('grid-cols-3');
+            mainPanel.classList.add('grid-cols-2');
         });
-
+        cancelNewPatientBtn.addEventListener('click', () => {
+            newPatientFormPanel.classList.add('hidden');
+            showNewPatientFormBtn.classList.remove('hidden');
+            // Show calendar again
+            calendarPanel.classList.remove('hidden');
+            mainPanel.classList.remove('grid-cols-2');
+            mainPanel.classList.add('grid-cols-3');
+        });
+        closePatientBtn.addEventListener('click', closePatientDetails);
         newPatientForm.addEventListener('submit', savePatient);
+        patientDobInput.addEventListener('change', () => {
+            patientAgeDisplay.textContent = calculateAge(patientDobInput.value);
+        });
         addNoteBtn.addEventListener('click', addNote);
         addAttachmentBtn.addEventListener('click', addAttachment);
-        closePatientBtn.addEventListener('click', () => {
-            patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.remove('hidden');
-            selectedPatientId = null;
-            calendarPanel.classList.remove('hidden');
-        });
-
         editPatientBtn.addEventListener('click', editPatient);
         deletePatientBtn.addEventListener('click', deletePatient);
         confirmDeleteBtn.addEventListener('click', confirmDelete);
         cancelDeleteBtn.addEventListener('click', cancelDelete);
         generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
         generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
-        patientDobInput.addEventListener('input', (e) => {
-            const dob = e.target.value;
-            patientAgeDisplay.textContent = calculateAge(dob);
-        });
         
-        document.getElementById('addAppointmentFromPatientBtn').addEventListener('click', () => {
-            if (!selectedPatientId) {
-                console.error('No hay un paciente seleccionado.');
-                return;
-            }
-            const appointmentDate = prompt('Agendar cita. Ingresa la fecha (YYYY-MM-DD):');
-            if (appointmentDate) {
-                addAppointment(selectedPatientId, appointmentDate);
-            }
-        });
-        
-        // Calendar logic
-        function renderCalendar() {
-            const today = new Date();
-            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-            const startDayOfWeek = firstDayOfMonth.getDay();
-            const daysInMonth = lastDayOfMonth.getDate();
-
-            currentMonthYearEl.textContent = `${new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(firstDayOfMonth)} ${currentYear}`;
-            calendarGrid.innerHTML = '';
-
-            for (let i = 0; i < startDayOfWeek; i++) {
-                const emptyDay = document.createElement('div');
-                emptyDay.classList.add('py-2');
-                calendarGrid.appendChild(emptyDay);
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayEl = document.createElement('div');
-                dayEl.classList.add('py-2', 'rounded-full', 'cursor-pointer', 'hover:bg-[#4b3d68]', 'transition-colors', 'calendar-day');
-                dayEl.textContent = day;
-                
-                // Check for appointments
-                const dateToCheck = new Date(currentYear, currentMonth, day).toISOString().slice(0, 10);
-                const hasAppointment = patients.some(p => p.appointments && p.appointments.some(a => a.date === dateToCheck));
-                if (hasAppointment) {
-                    dayEl.classList.add('has-appointment');
-                }
-                
-                dayEl.addEventListener('click', () => {
-                    // Show appointments for the day
-                    console.log('Citas para el día:', dateToCheck);
-                });
-                calendarGrid.appendChild(dayEl);
-            }
-        }
-        
-        // Appointment scheduling logic
-        async function addAppointment(patientId, appointmentDate) {
-            if (!patientId || !appointmentDate) return;
-            
-            loadingIndicator.classList.remove('hidden');
-            try {
-                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patientId}`);
-                const newAppointment = {
-                    date: appointmentDate,
-                    timestamp: Date.now()
-                };
-                const patientDoc = await getDoc(patientRef);
-                const currentAppointments = patientDoc.data().appointments || [];
-                const updatedAppointments = [...currentAppointments, newAppointment];
-                await updateDoc(patientRef, { appointments: updatedAppointments });
-                console.log('Cita agendada con éxito para el paciente', patientId);
-            } catch (e) {
-                console.error("Error al agendar la cita:", e);
-            } finally {
-                loadingIndicator.classList.add('hidden');
-            }
-        }
-
-        prevMonthBtn.addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-        });
-
-        nextMonthBtn.addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-        });
-
-        addAppointmentFromCalendarBtn.addEventListener('click', () => {
-            const patientName = prompt('Agendar cita. Ingresa el nombre completo del paciente:');
-            if (patientName) {
-                const patient = patients.find(p => `${p.name} ${p.lastName}`.toLowerCase() === patientName.toLowerCase());
-                if (patient) {
-                    const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
-                    if (appointmentDate) {
-                        addAppointment(patient.id, appointmentDate);
-                    }
-                } else {
-                    console.error('Paciente no encontrado.');
-                }
-            }
-        });
-
-        async function generateQuickSummary() {
-            aiQuickSummaryEl.textContent = 'Generando resumen...';
-            
-            const patient = patients.find(p => p.id === selectedPatientId);
-            if (!patient || !patient.notes || patient.notes.length === 0) {
-                aiQuickSummaryEl.textContent = 'No hay notas para generar un resumen rápido.';
-                return;
-            }
-
-            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
-            const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
-            
-            const userQuery = `Basado en la siguiente información y las notas de este paciente, genera un resumen muy breve y conciso de su estado actual, lo más importante de su caso y cualquier pendiente o próxima acción. Información: ${historyText}\nNotas: ${allNotes}`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                tools: [{ "google_search": {} }],
-                systemInstruction: {
-                    parts: [{ text: "Eres un asistente médico experto. Tu única tarea es analizar un caso de paciente y resumir los puntos más críticos y las tareas pendientes en un tono profesional y directo. Sé extremadamente breve y ve al grano." }]
-                }
-            };
-
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-            let retries = 0;
-            const maxRetries = 5;
-            let success = false;
-
-            while (retries < maxRetries && !success) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
-                            await new Promise(res => setTimeout(res, delay));
-                            retries++;
-                            continue;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
-                    aiQuickSummaryEl.textContent = text;
-                    success = true;
-
-                } catch (error) {
-                    console.error("Error generating quick summary:", error);
-                    aiQuickSummaryEl.textContent = 'Error al generar el resumen rápido. Inténtalo de nuevo.';
-                    break;
-                }
-            }
-        }
-        
-        async function fetchGeminiSummary(prompt, targetElement, systemPrompt, sectionElement) {
-            loadingIndicator.classList.remove('hidden');
-            sectionElement.classList.remove('hidden');
-            targetElement.textContent = 'Generando resumen...';
-
-            const patient = patients.find(p => p.id === selectedPatientId);
-            if (!patient || !patient.notes || patient.notes.length === 0) {
-                targetElement.textContent = 'No hay notas para generar un resumen.';
-                loadingIndicator.classList.add('hidden');
-                return;
-            }
-
-            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
-            const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
-
-            const userQuery = prompt + historyText + allNotes;
-            
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                tools: [{ "google_search": {} }],
-                systemInstruction: {
-                    parts: [{ text: systemPrompt }]
-                }
-            };
-
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-            let retries = 0;
-            const maxRetries = 5;
-            let success = false;
-
-            while (retries < maxRetries && !success) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
-                            await new Promise(res => setTimeout(res, delay));
-                            retries++;
-                            continue;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
-                    targetElement.textContent = text;
-                    success = true;
-
-                } catch (error) {
-                    console.error("Error generating summary:", error);
-                    targetElement.textContent = 'Error al generar el resumen. Inténtalo de nuevo más tarde.';
-                    break;
-                }
-            }
-
-            loadingIndicator.classList.add('hidden');
-        }
-
-        async function generateClinicalSummary() {
-            const prompt = `Basado en las siguientes notas de un paciente, genera un resumen conciso y profesional de su estado actual. No incluyas un título. Usa un tono médico. Notas: `;
-            const systemPrompt = "Eres un asistente médico experto. Tu única tarea es resumir información clínica de manera profesional.";
-            aiPatientSummarySection.classList.add('hidden');
-            fetchGeminiSummary(prompt, aiClinicalSummaryEl, systemPrompt, aiClinicalSummarySection);
-        }
-
-        async function generatePatientSummary() {
-            const prompt = `Basado en las siguientes notas clínicas de un paciente, genera un resumen de su estado de salud en un lenguaje sencillo y comprensible para el paciente. Evita la jerga médica. El resumen debe ser amable y tranquilizador. Notas: `;
-            const systemPrompt = "Eres un asistente que genera resúmenes médicos fáciles de entender para los pacientes. Sé conciso y usa un lenguaje simple.";
-            aiPatientSummarySection.classList.add('hidden');
-            fetchGeminiSummary(prompt, aiPatientSummaryEl, systemPrompt, aiPatientSummarySection);
-        }
-
+        // Tab functionality
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 tabContents.forEach(content => content.classList.add('hidden'));
-
                 button.classList.add('active');
-                document.getElementById(button.dataset.tab + 'Tab').classList.remove('hidden');
+                document.getElementById(`${button.dataset.tab}Tab`).classList.remove('hidden');
             });
         });
-
+        
+        // Search functionality
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase();
-            const filteredPatients = patients.filter(patient => {
-                const name = (patient.name || '').toLowerCase();
-                const lastName = (patient.lastName || '').toLowerCase();
-                const city = (patient.city || '').toLowerCase();
-                return name.includes(searchTerm) || lastName.includes(searchTerm) || city.includes(searchTerm);
-            });
+            const filteredPatients = patients.filter(p => 
+                p.name.toLowerCase().includes(searchTerm) || 
+                (p.lastName || '').toLowerCase().includes(searchTerm) ||
+                (p.city || '').toLowerCase().includes(searchTerm)
+            );
             renderPatientList(filteredPatients);
         });
 
-        showNewPatientFormBtn.addEventListener('click', () => {
-            newPatientFormPanel.classList.remove('hidden');
-            patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.add('hidden');
-            newPatientForm.reset();
-            patientAgeDisplay.textContent = '';
-            isEditing = false;
-            formTitleEl.textContent = 'Añadir Nuevo Paciente';
-            savePatientBtn.textContent = 'Guardar Paciente';
-            
-            calendarPanel.classList.add('hidden');
-        });
-        
-        cancelNewPatientBtn.addEventListener('click', () => {
-            newPatientFormPanel.classList.add('hidden');
-            patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.remove('hidden');
-            newPatientForm.reset();
-            patientAgeDisplay.textContent = '';
-            isEditing = false;
-            
-            calendarPanel.classList.remove('hidden');
-        });
-
-        newPatientForm.addEventListener('submit', savePatient);
-        addNoteBtn.addEventListener('click', addNote);
-        addAttachmentBtn.addEventListener('click', addAttachment);
-        closePatientBtn.addEventListener('click', () => {
-            patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.remove('hidden');
-            selectedPatientId = null;
-            calendarPanel.classList.remove('hidden');
-        });
-
-        editPatientBtn.addEventListener('click', editPatient);
-        deletePatientBtn.addEventListener('click', deletePatient);
-        confirmDeleteBtn.addEventListener('click', confirmDelete);
-        cancelDeleteBtn.addEventListener('click', cancelDelete);
-        generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
-        generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
-        patientDobInput.addEventListener('input', (e) => {
-            const dob = e.target.value;
-            patientAgeDisplay.textContent = calculateAge(dob);
-        });
-        
-        document.getElementById('addAppointmentFromPatientBtn').addEventListener('click', () => {
-            if (!selectedPatientId) {
-                console.error('No hay un paciente seleccionado.');
-                return;
-            }
-            const appointmentDate = prompt('Agendar cita. Ingresa la fecha (YYYY-MM-DD):');
-            if (appointmentDate) {
-                addAppointment(selectedPatientId, appointmentDate);
-            }
-        });
-        
-        // Calendar logic
-        function renderCalendar() {
-            const today = new Date();
-            const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-            const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-            const startDayOfWeek = firstDayOfMonth.getDay();
-            const daysInMonth = lastDayOfMonth.getDate();
-
-            currentMonthYearEl.textContent = `${new Intl.DateTimeFormat('es-CO', { month: 'long' }).format(firstDayOfMonth)} ${currentYear}`;
-            calendarGrid.innerHTML = '';
-
-            for (let i = 0; i < startDayOfWeek; i++) {
-                const emptyDay = document.createElement('div');
-                emptyDay.classList.add('py-2');
-                calendarGrid.appendChild(emptyDay);
-            }
-
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayEl = document.createElement('div');
-                dayEl.classList.add('py-2', 'rounded-full', 'cursor-pointer', 'hover:bg-[#4b3d68]', 'transition-colors', 'calendar-day');
-                dayEl.textContent = day;
-                
-                // Check for appointments
-                const dateToCheck = new Date(currentYear, currentMonth, day).toISOString().slice(0, 10);
-                const hasAppointment = patients.some(p => p.appointments && p.appointments.some(a => a.date === dateToCheck));
-                if (hasAppointment) {
-                    dayEl.classList.add('has-appointment');
-                }
-                
-                dayEl.addEventListener('click', () => {
-                    // Show appointments for the day
-                    console.log('Citas para el día:', dateToCheck);
-                });
-                calendarGrid.appendChild(dayEl);
-            }
-        }
-        
-        // Appointment scheduling logic
-        async function addAppointment(patientId, appointmentDate) {
-            if (!patientId || !appointmentDate) return;
-            
-            loadingIndicator.classList.remove('hidden');
-            try {
-                const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${patientId}`);
-                const newAppointment = {
-                    date: appointmentDate,
-                    timestamp: Date.now()
-                };
-                const patientDoc = await getDoc(patientRef);
-                const currentAppointments = patientDoc.data().appointments || [];
-                const updatedAppointments = [...currentAppointments, newAppointment];
-                await updateDoc(patientRef, { appointments: updatedAppointments });
-                console.log('Cita agendada con éxito para el paciente', patientId);
-            } catch (e) {
-                console.error("Error al agendar la cita:", e);
-            } finally {
-                loadingIndicator.classList.add('hidden');
-            }
-        }
-
-        prevMonthBtn.addEventListener('click', () => {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
-            }
-            renderCalendar();
-        });
-
-        nextMonthBtn.addEventListener('click', () => {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
-            }
-            renderCalendar();
-        });
-
-        addAppointmentFromCalendarBtn.addEventListener('click', () => {
-            const patientName = prompt('Agendar cita. Ingresa el nombre completo del paciente:');
-            if (patientName) {
-                const patient = patients.find(p => `${p.name} ${p.lastName}`.toLowerCase() === patientName.toLowerCase());
-                if (patient) {
-                    const appointmentDate = prompt(`Ingresa la fecha de la cita para ${patient.name} (YYYY-MM-DD):`);
-                    if (appointmentDate) {
-                        addAppointment(patient.id, appointmentDate);
-                    }
-                } else {
-                    console.error('Paciente no encontrado.');
-                }
-            }
-        });
-
-        async function generateQuickSummary() {
-            aiQuickSummaryEl.textContent = 'Generando resumen...';
-            
-            const patient = patients.find(p => p.id === selectedPatientId);
-            if (!patient || !patient.notes || patient.notes.length === 0) {
-                aiQuickSummaryEl.textContent = 'No hay notas para generar un resumen rápido.';
-                return;
-            }
-
-            const allNotes = patient.notes.map(note => `${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n');
-            const historyText = `Antecedentes Patológicos: ${patient.history?.pathological || 'N/A'}\nAntecedentes Familiares: ${patient.history?.family || 'N/A'}\nAntecedentes Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\nAntecedentes Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n`;
-            
-            const userQuery = `Basado en la siguiente información y las notas de este paciente, genera un resumen muy breve y conciso de su estado actual, lo más importante de su caso y cualquier pendiente o próxima acción. Información: ${historyText}\nNotas: ${allNotes}`;
-            
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                tools: [{ "google_search": {} }],
-                systemInstruction: {
-                    parts: [{ text: "Eres un asistente médico experto. Tu única tarea es analizar un caso de paciente y resumir los puntos más críticos y las tareas pendientes en un tono profesional y directo. Sé extremadamente breve y ve al grano." }]
-                }
-            };
-
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-            let retries = 0;
-            const maxRetries = 5;
-            let success = false;
-
-            while (retries < maxRetries && !success) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
-                            await new Promise(res => setTimeout(res, delay));
-                            retries++;
-                            continue;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
-                    aiQuickSummaryEl.textContent = text;
-                    success = true;
-
-                } catch (error) {
-                    console.error("Error generating quick summary:", error);
-                    aiQuickSummaryEl
+    </script>
+</body>
+</html>
