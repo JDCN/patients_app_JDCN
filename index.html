@@ -330,26 +330,23 @@
                     <input type="text" id="patientContactInput" placeholder="Número de Contacto" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
                     <input type="text" id="patientBirthplaceInput" placeholder="Lugar de Nacimiento" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
                     
-                    <!-- PESTAÑAS PARA ANTECEDENTES -->
-                    <div>
+                    <!-- NUEVA SECCIÓN DE ANTECEDENTES (SIN PESTAÑAS) -->
+                    <div class="space-y-4">
                         <h3 class="text-xl font-semibold lcars-text mb-2">Antecedentes</h3>
-                        <div class="flex border-b-2 border-[#a37dfd] mb-4">
-                            <button type="button" class="lcars-tab-button active flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="pathological">Patológicos</button>
-                            <button type="button" class="lcars-tab-button flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="family">Familiares</button>
-                            <button type="button" class="lcars-tab-button flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="pharmacological">Farmacológicos</button>
-                            <button type="button" class="lcars-tab-button flex-1 text-center py-2 px-4 focus:outline-none transition-colors duration-200" data-tab="surgical">Quirúrgicos</button>
-                        </div>
-
-                        <div id="pathologicalTab" class="tab-content">
+                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Patológicos</h4>
                             <textarea id="patientPathologicalHistoryInput" placeholder="Antecedentes patológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
                         </div>
-                        <div id="familyTab" class="tab-content hidden">
+                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Familiares</h4>
                             <textarea id="patientFamilyHistoryInput" placeholder="Antecedentes familiares" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
                         </div>
-                        <div id="pharmacologicalTab" class="tab-content hidden">
+                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Farmacológicos</h4>
                             <textarea id="patientPharmacologicalHistoryInput" placeholder="Antecedentes farmacológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
                         </div>
-                        <div id="surgicalTab" class="tab-content hidden">
+                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Quirúrgicos</h4>
                             <textarea id="patientSurgicalHistoryInput" placeholder="Antecedentes quirúrgicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
                         </div>
                     </div>
@@ -888,6 +885,7 @@
                 console.error("Error saving patient:", e);
                 showMessageModal('Error', 'Hubo un problema al guardar el paciente. Revisa la consola para más detalles.');
             } finally {
+                // Ensure loading indicator is always hidden after the operation
                 loadingIndicator.classList.add('hidden');
                 newPatientForm.reset();
                 patientAgeDisplay.textContent = '';
@@ -1434,7 +1432,7 @@
         generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
         generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
         
-        // Tab functionality
+        // Tab functionality (no longer used, but keeping for reference if needed)
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
                 tabButtons.forEach(btn => btn.classList.remove('active'));
