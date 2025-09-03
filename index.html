@@ -90,6 +90,24 @@
             box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
             border: 2px solid #a37dfd;
         }
+        /* New Patient Form scrollable section */
+        #newPatientFormScroll {
+            max-height: 70vh; /* Adjust as needed */
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #a37dfd #4b3d68;
+        }
+        #newPatientFormScroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        #newPatientFormScroll::-webkit-scrollbar-track {
+            background: #4b3d68;
+        }
+        #newPatientFormScroll::-webkit-scrollbar-thumb {
+            background-color: #a37dfd;
+            border-radius: 20px;
+            border: 2px solid #4b3d68;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center justify-center">
@@ -159,8 +177,15 @@
 
     <!-- CONTENIDO PRINCIPAL DE LA APLICACIÓN (OCULTO POR DEFECTO) -->
     <div id="mainPanel" class="w-full max-w-4xl p-6 hidden">
-        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
-        <p id="userIdDisplay" class="text-sm text-[#ff9100] mb-4 text-center"></p>
+        <div class="flex items-center justify-between mb-6 border-b-2 pb-2 border-[#a37dfd]">
+            <h1 class="text-3xl font-bold lcars-text text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
+            <div class="flex items-center space-x-4">
+                <p id="userIdDisplay" class="text-sm text-[#ff9100]"></p>
+                <button id="logoutBtn" class="lcars-btn text-white font-semibold py-2 px-4 hover:bg-[#ef6c00] transition-colors">
+                    Cerrar Sesión
+                </button>
+            </div>
+        </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
@@ -172,9 +197,14 @@
                 <input type="text" id="searchInput" placeholder="Buscar por nombre o ciudad..." list="patientSuggestions" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100] mb-4">
                 <datalist id="patientSuggestions"></datalist>
 
-                <button id="showNewPatientFormBtn" class="w-full lcars-btn text-lg font-semibold py-2 mb-4 transition-colors shadow-md text-white">
-                    + Añadir Nuevo Paciente
-                </button>
+                <div class="space-y-2">
+                    <button id="showNewPatientFormBtn" class="w-full lcars-btn text-lg font-semibold py-2 mb-4 transition-colors shadow-md text-white">
+                        + Añadir Nuevo Paciente
+                    </button>
+                    <button id="downloadAllPatientsBtn" class="w-full bg-cyan-600 text-white rounded-xl py-2 px-4 hover:bg-cyan-700 transition-colors shadow-md">
+                        Descargar Todos los Pacientes (.csv)
+                    </button>
+                </div>
                 <ul id="patientList" class="space-y-2 max-h-96 overflow-y-auto">
                     <!-- Los pacientes se cargarán aquí -->
                 </ul>
@@ -220,6 +250,9 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
+                        </button>
+                        <button id="downloadSinglePatientBtn" class="text-cyan-400 hover:text-cyan-500 transition-colors">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                         </button>
                     </div>
                 </div>
@@ -304,65 +337,69 @@
                     <!-- Los datos del paciente se cargarán aquí -->
                 </div>
                 
-                <div class="flex justify-center mt-6">
-                    <button id="logoutBtn" class="lcars-btn text-white font-semibold py-2 px-6 hover:bg-[#ef6c00] transition-colors">
-                        Cerrar Sesión
-                    </button>
-                </div>
             </div>
 
             <!-- Formulario de Nuevo Paciente -->
-            <div id="newPatientFormPanel" class="md:col-span-2 w-full max-w-4xl lcars-panel p-4 hidden">
+            <div id="newPatientFormPanel" class="md:col-span-2 lcars-panel p-4 hidden">
                 <h2 id="formTitle" class="text-xl font-semibold mb-4 lcars-text">Añadir Nuevo Paciente</h2>
-                <form id="newPatientForm" class="space-y-4">
-                    <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                    <input type="text" id="patientLastNameInput" placeholder="Apellido" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                    <div class="flex items-center space-x-2">
-                        <input type="date" id="patientDobInput" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        <span id="patientAgeDisplay" class="text-sm text-[#a37dfd] w-1/4 min-w-[70px] text-right"></span>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="patientAddressInput" placeholder="Dirección" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        <input type="text" id="patientCityInput" placeholder="Ciudad de Residencia" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                    </div>
-                    
-                    <input type="text" id="patientContactInput" placeholder="Número de Contacto" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                    <input type="text" id="patientBirthplaceInput" placeholder="Lugar de Nacimiento" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                    
-                    <!-- NUEVA SECCIÓN DE ANTECEDENTES (SIN PESTAÑAS) -->
-                    <div class="space-y-4">
-                        <h3 class="text-xl font-semibold lcars-text mb-2">Antecedentes</h3>
-                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Patológicos</h4>
-                            <textarea id="patientPathologicalHistoryInput" placeholder="Antecedentes patológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                <div id="newPatientFormScroll">
+                    <form id="newPatientForm" class="space-y-4">
+                        <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        <input type="text" id="patientLastNameInput" placeholder="Apellido" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        <div class="flex items-center space-x-2">
+                            <input type="date" id="patientDobInput" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                            <span id="patientAgeDisplay" class="text-sm text-[#a37dfd] w-1/4 min-w-[70px] text-right"></span>
                         </div>
-                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Familiares</h4>
-                            <textarea id="patientFamilyHistoryInput" placeholder="Antecedentes familiares" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="patientAddressInput" placeholder="Dirección" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                            <input type="text" id="patientCityInput" placeholder="Ciudad de Residencia" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
                         </div>
-                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Farmacológicos</h4>
-                            <textarea id="patientPharmacologicalHistoryInput" placeholder="Antecedentes farmacológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        
+                        <input type="text" id="patientContactInput" placeholder="Número de Contacto" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        <input type="text" id="patientBirthplaceInput" placeholder="Lugar de Nacimiento" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                        
+                        <!-- NUEVA SECCIÓN DE ANTECEDENTES (COLAPSABLE) -->
+                        <div>
+                            <button type="button" id="toggleHistoryBtn" class="w-full text-left bg-[#4b3d68] text-[#ff9100] font-semibold py-2 px-4 rounded-xl shadow-md flex items-center justify-between transition-colors hover:bg-[#5a4970]">
+                                <span>Antecedentes</span>
+                                <svg id="historyArrow" class="h-6 w-6 transform transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                            </button>
+                            <div id="historySection" class="space-y-4 mt-4 hidden">
+                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Patológicos</h4>
+                                    <textarea id="patientPathologicalHistoryInput" placeholder="Antecedentes patológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                </div>
+                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Familiares</h4>
+                                    <textarea id="patientFamilyHistoryInput" placeholder="Antecedentes familiares" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                </div>
+                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Farmacológicos</h4>
+                                    <textarea id="patientPharmacologicalHistoryInput" placeholder="Antecedentes farmacológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                </div>
+                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Quirúrgicos</h4>
+                                    <textarea id="patientSurgicalHistoryInput" placeholder="Antecedentes quirúrgicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                </div>
+                            </div>
                         </div>
-                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Quirúrgicos</h4>
-                            <textarea id="patientSurgicalHistoryInput" placeholder="Antecedentes quirúrgicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        
+                        <textarea id="patientCurrentIllnessInput" placeholder="Enfermedad Actual" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        <textarea id="patientTreatmentsInput" placeholder="Tratamientos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        <textarea id="patientAnalysisInput" placeholder="Análisis" class="w-full p-2 border-2 lcars-input resize-none focus:outline-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        <div class="flex justify-end space-x-2 mt-4">
+                            <button type="button" id="cancelNewPatientBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors shadow-md">
+                                Cancelar
+                            </button>
+                            <button type="submit" id="savePatientBtn" class="lcars-btn text-white rounded-xl py-2 px-4 transition-colors shadow-md">
+                                Guardar Paciente
+                            </button>
                         </div>
-                    </div>
-                    
-                    <textarea id="patientCurrentIllnessInput" placeholder="Enfermedad Actual" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
-                    <textarea id="patientTreatmentsInput" placeholder="Tratamientos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
-                    <textarea id="patientAnalysisInput" placeholder="Análisis" class="w-full p-2 border-2 lcars-input resize-none focus:outline-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
-                    <div class="flex justify-end space-x-2 mt-4">
-                        <button type="button" id="cancelNewPatientBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors shadow-md">
-                            Cancelar
-                        </button>
-                        <button type="submit" id="savePatientBtn" class="lcars-btn text-white rounded-xl py-2 px-4 transition-colors shadow-md">
-                            Guardar Paciente
-                        </button>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -431,6 +468,7 @@
           appId: "1:5231907336:web:58961f63cc4eaf1f1df7bd",
           measurementId: "G-F8LX06SG7N"
         };
+        const geminiApiKey = 'AIzaSyDuSnH8UDUXaxlkOkWQMEeMDmtfCISJYd0';
 
         let db, auth, storage, userId;
         const patientsRef = (uid) => collection(db, `artifacts/${appId}/users/${uid}/patients`);
@@ -498,8 +536,6 @@
         const aiPatientSummarySection = document.getElementById('aiPatientSummarySection');
         const aiPatientSummaryEl = document.getElementById('aiPatientSummary');
         const loadingIndicator = document.getElementById('loadingIndicator');
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabContents = document.querySelectorAll('.tab-content');
         const calendarGrid = document.getElementById('calendarGrid');
         const currentMonthYearEl = document.getElementById('currentMonthYear');
         const prevMonthBtn = document.getElementById('prevMonthBtn');
@@ -516,6 +552,11 @@
         const appointmentPatientInput = document.getElementById('appointmentPatientInput');
         const appointmentDateInput = document.getElementById('appointmentDateInput');
         const cancelAppointmentBtn = document.getElementById('cancelAppointmentBtn');
+        const downloadSinglePatientBtn = document.getElementById('downloadSinglePatientBtn');
+        const downloadAllPatientsBtn = document.getElementById('downloadAllPatientsBtn');
+        const historySection = document.getElementById('historySection');
+        const toggleHistoryBtn = document.getElementById('toggleHistoryBtn');
+        const historyArrow = document.getElementById('historyArrow');
 
         let patients = [];
         let selectedPatientId = null;
@@ -537,7 +578,6 @@
 
         // Initialize Firebase
         window.onload = function () {
-            // Check if firebaseConfig is not empty
             if (Object.values(firebaseConfig).some(value => value === '...')) {
                 authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase. La aplicación no funcionará.';
                 authErrorEl.classList.remove('hidden');
@@ -550,6 +590,7 @@
                 auth = getAuth(app);
                 storage = getStorage(app);
                 setupAuthListener();
+                setupEventListeners();
             } catch (e) {
                 authErrorEl.textContent = 'Error al inicializar Firebase. Revisa tus credenciales.';
                 authErrorEl.classList.remove('hidden');
@@ -561,12 +602,10 @@
         function setupAuthListener() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    // Manejar el token personalizado solo si no hay un usuario autenticado ya
                     if (!auth.currentUser && initialAuthToken) {
                         try {
                             await signInWithCustomToken(auth, initialAuthToken);
                         } catch (error) {
-                            // Ignorar el error de "token-mismatch" ya que es un comportamiento esperado
                             if (error.code !== 'auth/custom-token-mismatch') {
                                 console.error("Error signing in with custom token:", error);
                             }
@@ -1066,6 +1105,100 @@
             return `${age} años`;
         }
 
+        // Logic for downloading files
+        function downloadFile(content, filename, mimeType) {
+            const blob = new Blob([content], { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadSinglePatient() {
+            if (!selectedPatientId) {
+                showMessageModal('Error', 'Por favor, selecciona un paciente primero.');
+                return;
+            }
+
+            const patient = patients.find(p => p.id === selectedPatientId);
+            if (!patient) {
+                showMessageModal('Error', 'Paciente no encontrado.');
+                return;
+            }
+
+            const patientText = 
+                `**Información del Paciente**\n` +
+                `ID: ${patient.id}\n` +
+                `Nombre: ${patient.name} ${patient.lastName || ''}\n` +
+                `Fecha de Nacimiento: ${patient.dob || 'N/A'}\n` +
+                `Edad: ${patient.age || 'N/A'}\n` +
+                `Dirección: ${patient.address || 'N/A'}\n` +
+                `Ciudad: ${patient.city || 'N/A'}\n` +
+                `Contacto: ${patient.contact || 'N/A'}\n` +
+                `Lugar de Nacimiento: ${patient.birthplace || 'N/A'}\n\n` +
+                `**Antecedentes**\n` +
+                `- Patológicos: ${patient.history?.pathological || 'N/A'}\n` +
+                `- Familiares: ${patient.history?.family || 'N/A'}\n` +
+                `- Farmacológicos: ${patient.history?.pharmacological || 'N/A'}\n` +
+                `- Quirúrgicos: ${patient.history?.surgical || 'N/A'}\n\n` +
+                `**Enfermedad Actual**: ${patient.currentIllness || 'N/A'}\n` +
+                `**Tratamientos**: ${patient.treatments || 'N/A'}\n` +
+                `**Análisis**: ${patient.analysis || 'N/A'}\n\n` +
+                `**Notas**\n` +
+                (patient.notes?.map(note => `[${new Date(note.timestamp).toLocaleString()}] ${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`).join('\n') || 'No hay notas.');
+
+            const filename = `Paciente_${patient.name.replace(/ /g, '_')}_${patient.lastName.replace(/ /g, '_')}.txt`;
+            downloadFile(patientText, filename, 'text/plain');
+        }
+
+        function downloadAllPatientsCSV() {
+            if (patients.length === 0) {
+                showMessageModal('Info', 'No hay pacientes para descargar.');
+                return;
+            }
+
+            const headers = [
+                'ID', 'Nombre', 'Apellido', 'Fecha de Nacimiento', 'Edad', 'Dirección', 'Ciudad', 'Contacto', 'Lugar de Nacimiento',
+                'Antecedentes Patológicos', 'Antecedentes Familiares', 'Antecedentes Farmacológicos', 'Antecedentes Quirúrgicos',
+                'Enfermedad Actual', 'Tratamientos', 'Análisis', 'Notas'
+            ];
+
+            const csvRows = [headers.join(',')];
+
+            patients.forEach(patient => {
+                const notesText = (patient.notes || []).map(note => 
+                    `[${new Date(note.timestamp).toLocaleString()}] ${note.isPriority ? '[PRIORITARIO] ' : ''}${note.text}`
+                ).join(' | ').replace(/"/g, '""');
+
+                const row = [
+                    patient.id,
+                    `"${patient.name || ''}"`,
+                    `"${patient.lastName || ''}"`,
+                    `"${patient.dob || ''}"`,
+                    `"${patient.age || ''}"`,
+                    `"${patient.address || ''}"`,
+                    `"${patient.city || ''}"`,
+                    `"${patient.contact || ''}"`,
+                    `"${patient.birthplace || ''}"`,
+                    `"${patient.history?.pathological?.replace(/"/g, '""') || ''}"`,
+                    `"${patient.history?.family?.replace(/"/g, '""') || ''}"`,
+                    `"${patient.history?.pharmacological?.replace(/"/g, '""') || ''}"`,
+                    `"${patient.history?.surgical?.replace(/"/g, '""') || ''}"`,
+                    `"${patient.currentIllness?.replace(/"/g, '""') || ''}"`,
+                    `"${patient.treatments?.replace(/"/g, '""') || ''}"`,
+                    `"${patient.analysis?.replace(/"/g, '""') || ''}"`,
+                    `"${notesText}"`
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            downloadFile(csvRows.join('\n'), 'pacientes.csv', 'text/csv;charset=utf-8;');
+        }
+
         // Calendar logic
         function renderCalendar() {
             const today = new Date();
@@ -1203,43 +1336,39 @@
                     parts: [{ text: "Eres un asistente médico experto. Tu única tarea es analizar un caso de paciente y resumir los puntos más críticos y las tareas pendientes en un tono profesional y directo. Sé extremadamente breve y ve al grano." }]
                 }
             };
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            if (!geminiApiKey || geminiApiKey === 'TU_CLAVE_DE_API_DE_GEMINI') {
+                 aiQuickSummaryEl.textContent = 'Error: No se encontró la clave de API de Gemini. Asegúrate de que la API está habilitada en tu proyecto de Firebase.';
+                 console.error('Error: Gemini API key is missing.');
+                 return;
+            }
 
-            let retries = 0;
-            const maxRetries = 5;
-            let success = false;
-
-            while (retries < maxRetries && !success) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
-                            await new Promise(res => setTimeout(res, delay));
-                            retries++;
-                            continue;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
-                    aiQuickSummaryEl.textContent = text;
-                    success = true;
-
-                } catch (error) {
-                    console.error("Error generating quick summary:", error);
-                    aiQuickSummaryEl.textContent = 'Error al generar el resumen. Por favor, inténtalo de nuevo más tarde.';
-                    success = true;
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                     const errorText = await response.text();
+                     console.error(`API Error: ${response.status} ${response.statusText}`, errorText);
+                     if (response.status === 401) {
+                         aiQuickSummaryEl.textContent = `Error de autenticación (401). La clave de la API de Gemini es incorrecta o no está habilitada.`;
+                     } else {
+                         aiQuickSummaryEl.textContent = `Error HTTP! estado: ${response.status}. Inténtalo de nuevo más tarde.`;
+                     }
+                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
+                aiQuickSummaryEl.textContent = text;
+            } catch (error) {
+                console.error("Error generating quick summary:", error);
+                aiQuickSummaryEl.textContent = 'Error al generar el resumen. Por favor, inténtalo de nuevo más tarde.';
             }
         }
 
@@ -1295,43 +1424,41 @@
                     parts: [{ text: "Eres un médico experimentado y tu única tarea es generar resúmenes clínicos detallados y estructurados. Debes utilizar un lenguaje formal y profesional, y apegarte estrictamente a la información proporcionada. No inventes ni añadas información. El resumen debe estar bien organizado con títulos y viñetas." }]
                 }
             };
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+             if (!geminiApiKey || geminiApiKey === 'TU_CLAVE_DE_API_DE_GEMINI') {
+                aiClinicalSummaryEl.textContent = 'Error: No se encontró la clave de API de Gemini. Asegúrate de que la API está habilitada en tu proyecto de Firebase.';
+                console.error('Error: Gemini API key is missing.');
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-            let retries = 0;
-            const maxRetries = 5;
-            let success = false;
-
-            while (retries < maxRetries && !success) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
-                            await new Promise(res => setTimeout(res, delay));
-                            retries++;
-                            continue;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
-                    aiClinicalSummaryEl.textContent = text;
-                    success = true;
-
-                } catch (error) {
-                    console.error("Error generating clinical summary:", error);
-                    aiClinicalSummaryEl.textContent = 'Error al generar el resumen clínico. Por favor, inténtalo de nuevo más tarde.';
-                    success = true;
+                if (!response.ok) {
+                    const errorText = await response.text();
+                     console.error(`API Error: ${response.status} ${response.statusText}`, errorText);
+                     if (response.status === 401) {
+                         aiClinicalSummaryEl.textContent = `Error de autenticación (401). La clave de la API de Gemini es incorrecta o no está habilitada.`;
+                     } else {
+                         aiClinicalSummaryEl.textContent = `Error HTTP! estado: ${response.status}. Inténtalo de nuevo más tarde.`;
+                     }
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen clínico.';
+                aiClinicalSummaryEl.textContent = text;
+            } catch (error) {
+                console.error("Error generating clinical summary:", error);
+                aiClinicalSummaryEl.textContent = 'Error al generar el resumen clínico. Por favor, inténtalo de nuevo más tarde.';
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         }
 
@@ -1370,105 +1497,136 @@
                 }
             };
             
-            const apiKey = "";
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
-            let retries = 0;
-            const maxRetries = 5;
-            let success = false;
-
-            while (retries < maxRetries && !success) {
-                try {
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 429) {
-                            const delay = Math.pow(2, retries) * 1000 + Math.random() * 1000;
-                            console.warn(`API rate limit exceeded. Retrying in ${delay / 1000}s...`);
-                            await new Promise(res => setTimeout(res, delay));
-                            retries++;
-                            continue;
-                        }
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen para el paciente.';
-                    aiPatientSummaryEl.textContent = text;
-                    success = true;
-                } catch (error) {
-                    console.error("Error generating patient summary:", error);
-                    aiPatientSummaryEl.textContent = 'Error al generar el resumen para el paciente. Por favor, inténtalo de nuevo más tarde.';
-                    success = true;
+             if (!geminiApiKey || geminiApiKey === 'TU_CLAVE_DE_API_DE_GEMINI') {
+                aiPatientSummaryEl.textContent = 'Error: No se encontró la clave de API de Gemini. Asegúrate de que la API está habilitada en tu proyecto de Firebase.';
+                console.error('Error: Gemini API key is missing.');
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                     console.error(`API Error: ${response.status} ${response.statusText}`, errorText);
+                     if (response.status === 401) {
+                         aiPatientSummaryEl.textContent = `Error de autenticación (401). La clave de la API de Gemini es incorrecta o no está habilitada.`;
+                     } else {
+                         aiPatientSummaryEl.textContent = `Error HTTP! estado: ${response.status}. Inténtalo de nuevo más tarde.`;
+                     }
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
+
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen para el paciente.';
+                aiPatientSummaryEl.textContent = text;
+            } catch (error) {
+                console.error("Error generating patient summary:", error);
+                aiPatientSummaryEl.textContent = 'Error al generar el resumen para el paciente. Por favor, inténtalo de nuevo más tarde.';
+            } finally {
+                loadingIndicator.classList.add('hidden');
             }
         }
 
         // Event listeners
-        authForm.addEventListener('submit', handleAuth);
-        toggleAuthBtn.addEventListener('click', toggleAuthMode);
-        forgotPasswordBtn.addEventListener('click', handleForgotPassword);
-        logoutBtn.addEventListener('click', logout);
-        showNewPatientFormBtn.addEventListener('click', () => {
-            patientDetailsPanel.classList.add('hidden');
-            newPatientFormPanel.classList.remove('hidden');
-            isEditing = false;
-            formTitleEl.textContent = 'Añadir Nuevo Paciente';
-            savePatientBtn.textContent = 'Guardar Paciente';
-            newPatientForm.reset();
-            patientAgeDisplay.textContent = '';
-            // Hide calendar
-            calendarPanel.classList.add('hidden');
-            mainPanel.classList.remove('grid-cols-3');
-            mainPanel.classList.add('grid-cols-2');
-        });
-        cancelNewPatientBtn.addEventListener('click', () => {
-            newPatientFormPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.remove('hidden');
-            // Show calendar again
-            calendarPanel.classList.remove('hidden');
-            mainPanel.classList.remove('grid-cols-2');
-            mainPanel.classList.add('grid-cols-3');
-        });
-        closePatientBtn.addEventListener('click', closePatientDetails);
-        newPatientForm.addEventListener('submit', savePatient);
-        patientDobInput.addEventListener('change', () => {
-            patientAgeDisplay.textContent = calculateAge(patientDobInput.value);
-        });
-        addNoteBtn.addEventListener('click', addNote);
-        addAttachmentBtn.addEventListener('click', addAttachment);
-        editPatientBtn.addEventListener('click', editPatient);
-        deletePatientBtn.addEventListener('click', deletePatient);
-        confirmDeleteBtn.addEventListener('click', confirmDelete);
-        cancelDeleteBtn.addEventListener('click', cancelDelete);
-        generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
-        generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
-        
-        // Tab functionality (no longer used, but keeping for reference if needed)
-        tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                tabContents.forEach(content => content.classList.add('hidden'));
-                button.classList.add('active');
-                document.getElementById(`${button.dataset.tab}Tab`).classList.remove('hidden');
+        function setupEventListeners() {
+            authForm.addEventListener('submit', handleAuth);
+            toggleAuthBtn.addEventListener('click', toggleAuthMode);
+            forgotPasswordBtn.addEventListener('click', handleForgotPassword);
+            
+            showNewPatientFormBtn.addEventListener('click', () => {
+                patientDetailsPanel.classList.add('hidden');
+                newPatientFormPanel.classList.remove('hidden');
+                isEditing = false;
+                formTitleEl.textContent = 'Añadir Nuevo Paciente';
+                savePatientBtn.textContent = 'Guardar Paciente';
+                newPatientForm.reset();
+                patientAgeDisplay.textContent = '';
+                // Hide calendar
+                calendarPanel.classList.add('hidden');
+                mainPanel.classList.remove('grid-cols-3');
+                mainPanel.classList.add('grid-cols-2');
             });
-        });
-        
-        // Search functionality
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filteredPatients = patients.filter(p => 
-                p.name.toLowerCase().includes(searchTerm) || 
-                (p.lastName || '').toLowerCase().includes(searchTerm) ||
-                (p.city || '').toLowerCase().includes(searchTerm)
-            );
-            renderPatientList(filteredPatients);
-        });
-        
+            cancelNewPatientBtn.addEventListener('click', () => {
+                newPatientFormPanel.classList.add('hidden');
+                showNewPatientFormBtn.classList.remove('hidden');
+                // Show calendar again
+                calendarPanel.classList.remove('hidden');
+                mainPanel.classList.remove('grid-cols-2');
+                mainPanel.classList.add('grid-cols-3');
+            });
+            closePatientBtn.addEventListener('click', closePatientDetails);
+            newPatientForm.addEventListener('submit', savePatient);
+            patientDobInput.addEventListener('change', () => {
+                patientAgeDisplay.textContent = calculateAge(patientDobInput.value);
+            });
+            addNoteBtn.addEventListener('click', addNote);
+            addAttachmentBtn.addEventListener('click', addAttachment);
+            editPatientBtn.addEventListener('click', editPatient);
+            deletePatientBtn.addEventListener('click', deletePatient);
+            confirmDeleteBtn.addEventListener('click', confirmDelete);
+            cancelDeleteBtn.addEventListener('click', cancelDelete);
+            generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
+            generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
+            
+            // Tab functionality (no longer used, but keeping for reference if needed)
+            
+            // Search functionality
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredPatients = patients.filter(p => 
+                    p.name.toLowerCase().includes(searchTerm) || 
+                    (p.lastName || '').toLowerCase().includes(searchTerm) ||
+                    (p.city || '').toLowerCase().includes(searchTerm)
+                );
+                renderPatientList(filteredPatients);
+            });
+
+            // Event listeners for download buttons
+            document.getElementById('downloadAllPatientsBtn').addEventListener('click', downloadAllPatientsCSV);
+            document.getElementById('downloadSinglePatientBtn').addEventListener('click', downloadSinglePatient);
+
+            // Logic for collapsible history section
+            toggleHistoryBtn.addEventListener('click', () => {
+                const isHidden = historySection.classList.toggle('hidden');
+                if (isHidden) {
+                    historyArrow.style.transform = 'rotate(0deg)';
+                } else {
+                    historyArrow.style.transform = 'rotate(180deg)';
+                }
+            });
+
+            logoutBtn.addEventListener('click', logout);
+        }
+
+        // Initialize Firebase
+        window.onload = function () {
+            if (Object.values(firebaseConfig).some(value => value === '...')) {
+                authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase. La aplicación no funcionará.';
+                authErrorEl.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+                return;
+            }
+            try {
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                storage = getStorage(app);
+                setupAuthListener();
+                setupEventListeners(); // Now call this function here.
+            } catch (e) {
+                authErrorEl.textContent = 'Error al inicializar Firebase. Revisa tus credenciales.';
+                authErrorEl.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+                console.error("Error initializing Firebase:", e);
+            }
+        };
     </script>
 </body>
 </html>
