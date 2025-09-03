@@ -199,8 +199,8 @@
                     <!-- Días del calendario se renderizarán aquí -->
                 </div>
                 <button id="addAppointmentFromCalendarBtn" class="w-full lcars-btn text-sm font-semibold py-2 mt-4 transition-colors shadow-md text-white">
-                    Agendar Cita
-                </button>
+                        Agendar Cita
+                    </button>
             </div>
 
             <!-- Panel Principal de Paciente -->
@@ -538,10 +538,10 @@
         // Initialize Firebase
         window.onload = function () {
             // Check if firebaseConfig is not empty
-            if (Object.keys(firebaseConfig).length === 0 || !firebaseConfig.projectId) {
+            if (Object.values(firebaseConfig).some(value => value === '...')) {
                 authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase. La aplicación no funcionará.';
                 authErrorEl.classList.remove('hidden');
-                console.error("Firebase config not found.");
+                loadingIndicator.classList.add('hidden');
                 return;
             }
             try {
@@ -553,6 +553,7 @@
             } catch (e) {
                 authErrorEl.textContent = 'Error al inicializar Firebase. Revisa tus credenciales.';
                 authErrorEl.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
                 console.error("Error initializing Firebase:", e);
             }
         };
@@ -560,11 +561,15 @@
         function setupAuthListener() {
             onAuthStateChanged(auth, async (user) => {
                 if (user) {
-                    if (initialAuthToken) {
+                    // Manejar el token personalizado solo si no hay un usuario autenticado ya
+                    if (!auth.currentUser && initialAuthToken) {
                         try {
                             await signInWithCustomToken(auth, initialAuthToken);
                         } catch (error) {
-                            console.error("Error signing in with custom token:", error);
+                            // Ignorar el error de "token-mismatch" ya que es un comportamiento esperado
+                            if (error.code !== 'auth/custom-token-mismatch') {
+                                console.error("Error signing in with custom token:", error);
+                            }
                         }
                     }
                     userId = user.uid;
@@ -628,8 +633,6 @@
                     return 'La contraseña debe tener al menos 6 caracteres.';
                 case 'auth/network-request-failed':
                     return 'Error de conexión. Revisa tu conexión a internet.';
-                case 'auth/missing-password':
-                    return 'Por favor, introduce una contraseña.';
                 default:
                     return `Ocurrió un error inesperado. Por favor, inténtalo de nuevo.`;
             }
@@ -847,7 +850,6 @@
         async function savePatient(e) {
             e.preventDefault();
             loadingIndicator.classList.remove('hidden');
-        
             const patientData = {
                 name: patientNameInput.value,
                 lastName: patientLastNameInput.value,
@@ -867,25 +869,43 @@
                 treatments: patientTreatmentsInput.value,
                 analysis: patientAnalysisInput.value,
             };
-        
-            try {
-                if (isEditing && selectedPatientId) {
-                    const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
-                    await updateDoc(patientRef, patientData);
-                    showMessageModal('Éxito', 'Paciente actualizado con éxito.');
-                } else {
-                    patientData.notes = [];
-                    patientData.attachments = [];
-                    patientData.appointments = [];
-                    patientData.lastEntry = Date.now();
-                    await addDoc(patientsRef(userId), patientData);
-                    showMessageModal('Éxito', 'Paciente creado con éxito.');
+
+            // Implementar la lógica de tiempo de espera de 5 segundos
+            const savePromise = new Promise(async (resolve, reject) => {
+                try {
+                    if (isEditing && selectedPatientId) {
+                        const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
+                        await updateDoc(patientRef, patientData);
+                    } else {
+                        patientData.notes = [];
+                        patientData.attachments = [];
+                        patientData.appointments = [];
+                        patientData.lastEntry = Date.now();
+                        await addDoc(patientsRef(userId), patientData);
+                    }
+                    resolve();
+                } catch (e) {
+                    reject(e);
                 }
+            });
+
+            const timeoutPromise = new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    reject(new Error('timeout'));
+                }, 5000); // 5 segundos
+            });
+            
+            try {
+                await Promise.race([savePromise, timeoutPromise]);
+                showMessageModal('Éxito', `Paciente ${isEditing ? 'actualizado' : 'creado'} con éxito.`);
             } catch (e) {
-                console.error("Error saving patient:", e);
-                showMessageModal('Error', 'Hubo un problema al guardar el paciente. Revisa la consola para más detalles.');
+                if (e.message === 'timeout') {
+                    showMessageModal('Error de Conexión', 'La operación de guardado tardó demasiado. Por favor, verifica tu conexión a internet o las reglas de seguridad de Firestore.');
+                } else {
+                    console.error("Error saving patient:", e);
+                    showMessageModal('Error', 'Hubo un problema al guardar el paciente. Revisa la consola para más detalles.');
+                }
             } finally {
-                // Ensure loading indicator is always hidden after the operation
                 loadingIndicator.classList.add('hidden');
                 newPatientForm.reset();
                 patientAgeDisplay.textContent = '';
@@ -895,7 +915,6 @@
                 isEditing = false;
                 formTitleEl.textContent = 'Añadir Nuevo Paciente';
                 savePatientBtn.textContent = 'Guardar Paciente';
-                // Show calendar again after saving
                 calendarPanel.classList.remove('hidden');
                 mainPanel.classList.remove('grid-cols-2');
                 mainPanel.classList.add('grid-cols-3');
@@ -1304,15 +1323,14 @@
                     }
                     
                     const result = await response.json();
-                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen clínico.';
+                    const text = result?.candidates?.[0]?.content?.parts?.[0]?.text || 'No se pudo generar el resumen.';
                     aiClinicalSummaryEl.textContent = text;
                     success = true;
+
                 } catch (error) {
                     console.error("Error generating clinical summary:", error);
                     aiClinicalSummaryEl.textContent = 'Error al generar el resumen clínico. Por favor, inténtalo de nuevo más tarde.';
                     success = true;
-                } finally {
-                    loadingIndicator.classList.add('hidden');
                 }
             }
         }
@@ -1386,8 +1404,6 @@
                     console.error("Error generating patient summary:", error);
                     aiPatientSummaryEl.textContent = 'Error al generar el resumen para el paciente. Por favor, inténtalo de nuevo más tarde.';
                     success = true;
-                } finally {
-                    loadingIndicator.classList.add('hidden');
                 }
             }
         }
