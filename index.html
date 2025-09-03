@@ -850,7 +850,7 @@
         async function savePatient(e) {
             e.preventDefault();
             loadingIndicator.classList.remove('hidden');
-
+        
             const patientData = {
                 name: patientNameInput.value,
                 lastName: patientLastNameInput.value,
@@ -870,7 +870,7 @@
                 treatments: patientTreatmentsInput.value,
                 analysis: patientAnalysisInput.value,
             };
-
+        
             try {
                 if (isEditing && selectedPatientId) {
                     const patientRef = doc(db, `artifacts/${appId}/users/${userId}/patients/${selectedPatientId}`);
@@ -884,7 +884,11 @@
                     await addDoc(patientsRef(userId), patientData);
                     showMessageModal('Éxito', 'Paciente creado con éxito.');
                 }
-                
+            } catch (e) {
+                console.error("Error saving patient:", e);
+                showMessageModal('Error', 'Hubo un problema al guardar el paciente. Revisa la consola para más detalles.');
+            } finally {
+                loadingIndicator.classList.add('hidden');
                 newPatientForm.reset();
                 patientAgeDisplay.textContent = '';
                 newPatientFormPanel.classList.add('hidden');
@@ -897,11 +901,6 @@
                 calendarPanel.classList.remove('hidden');
                 mainPanel.classList.remove('grid-cols-2');
                 mainPanel.classList.add('grid-cols-3');
-            } catch (e) {
-                console.error("Error saving patient:", e);
-                showMessageModal('Error', 'Hubo un problema al guardar el paciente. Revisa la consola para más detalles.');
-            } finally {
-                loadingIndicator.classList.add('hidden');
             }
         }
 
