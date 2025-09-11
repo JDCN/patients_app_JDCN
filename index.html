@@ -11,7 +11,7 @@
     <style>
         body {
             font-family: 'Roboto Mono', monospace;
-            background-color: #211531;
+            background-color: #000000;
         }
         .lcars-panel {
             background-color: #55446f;
@@ -108,6 +108,42 @@
             border-radius: 20px;
             border: 2px solid #4b3d68;
         }
+        
+        .blink {
+            animation: blink-animation 1s infinite;
+        }
+
+        @keyframes blink-animation {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Estilos para la nueva consola */
+        .lcars-console {
+            background-color: #2b2b2b; /* Fondo oscuro */
+            border: 2px solid #00ffff; /* Borde cian brillante */
+            color: #00ff00; /* Texto verde neon */
+            font-size: 0.75rem; /* text-xs */
+            font-family: 'Roboto Mono', monospace;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            max-height: 80px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            scrollbar-width: thin;
+            scrollbar-color: #00ffff #2b2b2b;
+        }
+        .lcars-console::-webkit-scrollbar {
+            width: 8px;
+        }
+        .lcars-console::-webkit-scrollbar-track {
+            background: #2b2b2b;
+        }
+        .lcars-console::-webkit-scrollbar-thumb {
+            background-color: #00ffff;
+            border-radius: 20px;
+            border: 2px solid #2b2b2b;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 flex flex-col items-center justify-center">
@@ -156,10 +192,11 @@
     </div>
 
     <!-- PANTALLA DE INICIO DE SESIÓN -->
-    <div id="authPanel" class="w-full max-w-sm lcars-panel p-6">
-        <h1 class="text-3xl font-bold lcars-text mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
+    <div id="authPanel" class="w-full max-w-sm lcars-panel p-6 flex flex-col items-center">
+        <div id="logo-3d-container" class="w-48 h-24"></div>
+        <h1 class="text-3xl font-bold lcars-text mt-[120px] mb-6 text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
         <h2 id="authTitle" class="text-xl font-semibold mb-4 text-[#a37dfd] text-center">Iniciar Sesión</h2>
-        <form id="authForm" class="space-y-4">
+        <form id="authForm" class="space-y-4 w-full">
             <input type="email" id="emailInput" placeholder="Correo Electrónico" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
             <input type="password" id="passwordInput" placeholder="Contraseña" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
             <div id="authError" class="text-red-400 text-center hidden"></div>
@@ -177,228 +214,235 @@
 
     <!-- CONTENIDO PRINCIPAL DE LA APLICACIÓN (OCULTO POR DEFECTO) -->
     <div id="mainPanel" class="w-full max-w-4xl p-6 hidden">
-        <div class="flex items-center justify-between mb-6 border-b-2 pb-2 border-[#a37dfd]">
-            <h1 class="text-3xl font-bold lcars-text text-center">Gestión de Pacientes<br>Juan David Caicedo Narváez, MD.</h1>
-            <div class="flex items-center space-x-4">
-                <p id="userIdDisplay" class="text-sm text-[#ff9100]"></p>
-                <button id="logoutBtn" class="lcars-btn text-white font-semibold py-2 px-4 hover:bg-[#ef6c00] transition-colors">
-                    Cerrar Sesión
-                </button>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <!-- Panel de Lista de Pacientes -->
-            <div class="md:col-span-1 lcars-panel p-4">
-                <h2 class="text-xl font-semibold mb-4 lcars-text">Mis Pacientes</h2>
-                
-                <!-- Barra de búsqueda con sugerencias -->
-                <input type="text" id="searchInput" placeholder="Buscar por nombre o ciudad..." list="patientSuggestions" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100] mb-4">
-                <datalist id="patientSuggestions"></datalist>
-
-                <div class="space-y-2">
-                    <button id="showNewPatientFormBtn" class="w-full lcars-btn text-lg font-semibold py-2 mb-4 transition-colors shadow-md text-white">
-                        + Añadir Nuevo Paciente
+        <div class="lcars-panel-create p-6">
+            <div class="flex flex-col md:flex-row items-center justify-between mb-6 border-b-2 pb-2 border-[#81d4fa] md:space-x-4">
+                <div class="flex items-center space-x-4 flex-1">
+                    <div class="w-40 h-24 bg-transparent">
+                        <!-- Contenedor para la nueva consola -->
+                        <pre id="consoleOutput" class="lcars-console h-full"></pre>
+                    </div>
+                    <h1 class="text-3xl font-bold lcars-text text-center">Gestión de Pacientes</h1>
+                </div>
+                <div class="flex items-center space-x-4 mt-4 md:mt-0">
+                    <button id="toggleConsoleBtn" class="lcars-btn-create text-white font-semibold py-2 px-4 transition-colors">
+                        Detener Consola
                     </button>
-                    <button id="downloadAllPatientsBtn" class="w-full bg-cyan-600 text-white rounded-xl py-2 px-4 hover:bg-cyan-700 transition-colors shadow-md">
-                        Descargar Todos los Pacientes (.csv)
+                    <p id="userIdDisplay" class="text-sm text-[#ffffff] break-all"></p>
+                    <button id="logoutBtn" class="lcars-btn-create text-white font-semibold py-2 px-4 hover:bg-[#4b3d68] transition-colors">
+                        Cerrar Sesión
                     </button>
                 </div>
-                <ul id="patientList" class="space-y-2 max-h-96 overflow-y-auto">
-                    <!-- Los pacientes se cargarán aquí -->
-                </ul>
             </div>
 
-            <!-- Panel de Calendario -->
-            <div id="calendarPanel" class="md:col-span-1 lcars-panel p-4 flex flex-col items-center">
-                <h2 class="text-xl font-semibold mb-4 lcars-text">Citas del mes</h2>
-                <div class="w-full flex justify-between items-center mb-4">
-                    <button id="prevMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                    </button>
-                    <span id="currentMonthYear" class="text-lg font-bold text-white"></span>
-                    <button id="nextMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    </button>
-                </div>
-                <div class="w-full grid grid-cols-7 text-center text-xs text-[#a37dfd] mb-2">
-                    <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
-                </div>
-                <div id="calendarGrid" class="w-full grid grid-cols-7 gap-1 text-center text-white">
-                    <!-- Días del calendario se renderizarán aquí -->
-                </div>
-                <button id="addAppointmentFromCalendarBtn" class="w-full lcars-btn text-sm font-semibold py-2 mt-4 transition-colors shadow-md text-white">
-                        Agendar Cita
-                    </button>
+            <!-- Barra de navegación por pestañas -->
+            <div class="flex justify-center mb-6">
+                <button id="tabPatientsBtn" class="lcars-tab-button active py-2 px-6 transition-colors duration-300">Mis Pacientes</button>
+                <button id="tabCalendarBtn" class="lcars-tab-button py-2 px-6 transition-colors duration-300">Calendario</button>
+                <button id="tabNewPatientBtn" class="lcars-tab-button py-2 px-6 transition-colors duration-300">Nuevo Paciente</button>
             </div>
 
-            <!-- Panel Principal de Paciente -->
-            <div id="patientDetailsPanel" class="md:col-span-2 lcars-panel p-4 hidden">
-                <div class="flex items-center justify-between mb-4 border-b-2 pb-2 border-[#a37dfd]">
-                    <div class="flex-grow">
-                        <h2 id="patientName" class="text-2xl font-bold lcars-text"></h2>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button id="editPatientBtn" class="text-[#03a9f4] hover:text-[#0288d1] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </button>
-                        <button id="deletePatientBtn" class="text-[#f57c00] hover:text-[#ef6c00] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                        <button id="closePatientBtn" class="text-[#a37dfd] hover:text-[#b49cf8] transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <button id="downloadSinglePatientBtn" class="text-cyan-400 hover:text-cyan-500 transition-colors">
-                           <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        </button>
-                    </div>
-                </div>
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Contenedor para el contenido de las pestañas -->
+                <div id="tabContent" class="flex-1">
 
-                <!-- SECCIÓN DE RESUMEN RÁPIDO -->
-                <div id="aiQuickSummarySection" class="bg-[#4b3d68] p-4 rounded-3xl shadow-inner mb-6 border-2 border-[#a37dfd]">
-                    <h3 class="text-xl font-bold text-[#ff9100] mb-2">Resumen Rápido del Caso</h3>
-                    <div id="aiQuickSummary" class="text-white whitespace-pre-wrap">
-                        <p class="text-cyan-400 italic">Generando resumen...</p>
-                    </div>
-                </div>
-                
-                <div id="notesSection" class="mb-6">
-                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Notas</h3>
-                    <div id="patientNotes" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-4 max-h-60 overflow-y-auto border-2 border-[#a37dfd]">
-                        <!-- Las notas se cargarán aquí -->
-                    </div>
-                    <div class="mt-4 flex flex-col space-y-2">
-                        <textarea id="newNoteInput" placeholder="Añade una nueva nota..." class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100] text-white"></textarea>
-                        <div class="flex items-center space-x-2">
-                            <input type="checkbox" id="priorityNoteCheckbox" class="rounded text-[#f57c00] focus:ring-[#f57c00]">
-                            <label for="priorityNoteCheckbox" class="text-sm text-[#a37dfd]">Marcar como nota prioritaria</label>
-                        </div>
-                        <button id="addNoteBtn" class="w-full bg-[#03a9f4] text-white rounded-xl py-2 transition-colors shadow-md">
-                            Añadir Nota
-                        </button>
-                    </div>
-                </div>
-
-                <div id="attachmentsSection" class="mb-6">
-                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Archivos Adjuntos</h3>
-                    <div id="patientAttachments" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-2 max-h-40 overflow-y-auto border-2 border-[#a37dfd]">
-                        <!-- Los archivos se cargarán aquí -->
-                    </div>
-                    <div class="mt-4 flex flex-col space-y-2">
-                        <input type="file" id="attachmentFileInput" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        <button id="addAttachmentBtn" class="w-full bg-[#673ab7] text-white rounded-xl py-2 hover:bg-[#5e35b1] transition-colors shadow-md">
-                            Subir Archivo
-                        </button>
-                        <div id="uploadProgress" class="hidden w-full bg-[#4b3d68] rounded-full h-2.5 mt-2">
-                            <div id="progressBar" class="bg-[#ff9100] h-2.5 rounded-full" style="width: 0%"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div id="appointmentsSection" class="mb-6">
-                    <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Citas agendadas</h3>
-                    <div id="patientAppointments" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-2 max-h-40 overflow-y-auto border-2 border-[#a37dfd]">
-                        <!-- Las citas se cargarán aquí -->
-                    </div>
-                    <button id="addAppointmentFromPatientBtn" class="w-full bg-[#673ab7] text-white rounded-xl py-2 hover:bg-[#5e35b1] transition-colors shadow-md mt-4">
-                        Agendar Cita para este Paciente
-                    </button>
-                </div>
-
-
-                <div class="mb-6 space-y-2">
-                    <button id="generateClinicalSummaryBtn" class="w-full lcars-btn text-white rounded-xl py-2 transition-colors shadow-md">
-                        Generar Resumen Clínico con IA
-                    </button>
-                    <button id="generatePatientSummaryBtn" class="w-full bg-[#ff9100] text-white rounded-xl py-2 transition-colors shadow-md">
-                        Generar Resumen para el Paciente ✨
-                    </button>
-                </div>
-
-                <div id="aiClinicalSummarySection" class="hidden">
-                    <h3 class="text-xl font-bold text-[#ff9100] mb-2">Resumen Clínico (IA)</h3>
-                    <div id="aiClinicalSummary" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm text-white whitespace-pre-wrap">
-                        <!-- El resumen de la IA se mostrará aquí -->
-                    </div>
-                </div>
-
-                <div id="aiPatientSummarySection" class="hidden">
-                    <h3 class="text-xl font-bold text-[#ff9100] mb-2">Resumen para el Paciente (IA)</h3>
-                    <div id="aiPatientSummary" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm text-white whitespace-pre-wrap">
-                        <!-- El resumen de la IA para el paciente se mostrará aquí -->
-                    </div>
-                </div>
-
-                <!-- DATOS DEL PACIENTE AHORA EN LA PARTE INFERIOR -->
-                <div id="patientInfo" class="text-[#a37dfd] mt-1 p-4 bg-[#4b3d68] rounded-3xl shadow-sm">
-                    <!-- Los datos del paciente se cargarán aquí -->
-                </div>
-                
-            </div>
-
-            <!-- Formulario de Nuevo Paciente -->
-            <div id="newPatientFormPanel" class="md:col-span-2 lcars-panel p-4 hidden">
-                <h2 id="formTitle" class="text-xl font-semibold mb-4 lcars-text">Añadir Nuevo Paciente</h2>
-                <div id="newPatientFormScroll">
-                    <form id="newPatientForm" class="space-y-4">
-                        <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        <input type="text" id="patientLastNameInput" placeholder="Apellido" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        <div class="flex items-center space-x-2">
-                            <input type="date" id="patientDobInput" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                            <span id="patientAgeDisplay" class="text-sm text-[#a37dfd] w-1/4 min-w-[70px] text-right"></span>
-                        </div>
+                    <!-- Panel de Lista de Pacientes -->
+                    <div id="patientsPanel" class="lcars-panel p-4">
+                        <h2 class="text-xl font-semibold mb-4 lcars-text">Mis Pacientes</h2>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <input type="text" id="patientAddressInput" placeholder="Dirección" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                            <input type="text" id="patientCityInput" placeholder="Ciudad de Residencia" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        </div>
-                        
-                        <input type="text" id="patientContactInput" placeholder="Número de Contacto" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        <input type="text" id="patientBirthplaceInput" placeholder="Lugar de Nacimiento" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
-                        
-                        <!-- NUEVA SECCIÓN DE ANTECEDENTES (COLAPSABLE) -->
-                        <div>
-                            <button type="button" id="toggleHistoryBtn" class="w-full text-left bg-[#4b3d68] text-[#ff9100] font-semibold py-2 px-4 rounded-xl shadow-md flex items-center justify-between transition-colors hover:bg-[#5a4970]">
-                                <span>Antecedentes</span>
-                                <svg id="historyArrow" class="h-6 w-6 transform transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <polyline points="6 9 12 15 18 9"></polyline>
-                                </svg>
+                        <!-- Barra de búsqueda con sugerencias -->
+                        <input type="text" id="searchInput" placeholder="Buscar por nombre o ciudad..." list="patientSuggestions" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100] mb-4">
+                        <datalist id="patientSuggestions"></datalist>
+
+                        <div class="space-y-2 mb-4">
+                            <button id="downloadAllPatientsBtn" class="w-full bg-cyan-600 text-white rounded-xl py-2 px-4 hover:bg-cyan-700 transition-colors shadow-md">
+                                Descargar Todos los Pacientes (.csv)
                             </button>
-                            <div id="historySection" class="space-y-4 mt-4 hidden">
-                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Patológicos</h4>
-                                    <textarea id="patientPathologicalHistoryInput" placeholder="Antecedentes patológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                        </div>
+                        <ul id="patientList" class="space-y-2 max-h-96 overflow-y-auto">
+                            <!-- Los pacientes se cargarán aquí -->
+                        </ul>
+                    </div>
+
+                    <!-- Panel de Calendario (Oculto por defecto) -->
+                    <div id="calendarPanel" class="lcars-panel p-4 hidden">
+                        <h2 class="text-xl font-semibold mb-4 lcars-text">Citas del mes</h2>
+                        <div class="w-full flex justify-between items-center mb-4">
+                            <button id="prevMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <span id="currentMonthYear" class="text-lg font-bold text-white"></span>
+                            <button id="nextMonthBtn" class="text-[#a37dfd] hover:text-[#ff9100] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        </div>
+                        <div class="w-full grid grid-cols-7 text-center text-xs text-[#a37dfd] mb-2">
+                            <span>Dom</span><span>Lun</span><span>Mar</span><span>Mié</span><span>Jue</span><span>Vie</span><span>Sáb</span>
+                        </div>
+                        <div id="calendarGrid" class="w-full grid grid-cols-7 gap-1 text-center text-white">
+                            <!-- Días del calendario se renderizarán aquí -->
+                        </div>
+                        <button id="addAppointmentFromCalendarBtn" class="w-full lcars-btn text-sm font-semibold py-2 mt-4 transition-colors shadow-md text-white">
+                                Agendar Cita
+                        </button>
+                    </div>
+
+                    <!-- Formulario de Nuevo Paciente (Oculto por defecto) -->
+                    <div id="newPatientFormPanel" class="lcars-panel p-4 hidden">
+                        <h2 id="formTitle" class="text-xl font-semibold mb-4 lcars-text">Añadir Nuevo Paciente</h2>
+                        <div id="newPatientFormScroll">
+                            <form id="newPatientForm" class="space-y-4">
+                                <input type="text" id="patientNameInput" placeholder="Nombre" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                                <input type="text" id="patientLastNameInput" placeholder="Apellido" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                                <div class="flex items-center space-x-2">
+                                    <input type="date" id="patientDobInput" required class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                                    <span id="patientAgeDisplay" class="text-sm text-[#a37dfd] w-1/4 min-w-[70px] text-right"></span>
                                 </div>
-                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Familiares</h4>
-                                    <textarea id="patientFamilyHistoryInput" placeholder="Antecedentes familiares" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input type="text" id="patientAddressInput" placeholder="Dirección" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                                    <input type="text" id="patientCityInput" placeholder="Ciudad de Residencia" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
                                 </div>
-                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Farmacológicos</h4>
-                                    <textarea id="patientPharmacologicalHistoryInput" placeholder="Antecedentes farmacológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                
+                                <input type="text" id="patientContactInput" placeholder="Número de Contacto" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                                <input type="text" id="patientBirthplaceInput" placeholder="Lugar de Nacimiento" list="cities" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                                
+                                <!-- NUEVA SECCIÓN DE ANTECEDENTES (COLAPSABLE) -->
+                                <div>
+                                    <button type="button" id="toggleHistoryBtn" class="w-full text-left bg-[#4b3d68] text-[#ff9100] font-semibold py-2 px-4 rounded-xl shadow-md flex items-center justify-between transition-colors hover:bg-[#5a4970]">
+                                        <span>Antecedentes</span>
+                                        <svg id="historyArrow" class="h-6 w-6 transform transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 12 15 18 9"></polyline>
+                                        </svg>
+                                    </button>
+                                    <div id="historySection" class="space-y-4 mt-4 hidden">
+                                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Patológicos</h4>
+                                            <textarea id="patientPathologicalHistoryInput" placeholder="Antecedentes patológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                        </div>
+                                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Familiares</h4>
+                                            <textarea id="patientFamilyHistoryInput" placeholder="Antecedentes familiares" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                        </div>
+                                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Farmacológicos</h4>
+                                            <textarea id="patientPharmacologicalHistoryInput" placeholder="Antecedentes farmacológicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                        </div>
+                                        <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
+                                            <h4 class="text-md font-semibold text-[#ff9100] mb-2">Quirúrgicos</h4>
+                                            <textarea id="patientSurgicalHistoryInput" placeholder="Antecedentes quirúrgicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="bg-[#4b3d68] p-4 rounded-3xl border-2 border-[#a37dfd]">
-                                    <h4 class="text-md font-semibold text-[#ff9100] mb-2">Quirúrgicos</h4>
-                                    <textarea id="patientSurgicalHistoryInput" placeholder="Antecedentes quirúrgicos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                
+                                <textarea id="patientCurrentIllnessInput" placeholder="Enfermedad Actual" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                <textarea id="patientTreatmentsInput" placeholder="Tratamientos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                <textarea id="patientAnalysisInput" placeholder="Análisis" class="w-full p-2 border-2 lcars-input resize-none focus:outline-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
+                                <div class="flex justify-end space-x-2 mt-4">
+                                    <button type="button" id="cancelNewPatientBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors shadow-md">
+                                        Cancelar
+                                    </button>
+                                    <button type="submit" id="savePatientBtn" class="lcars-btn text-white rounded-xl py-2 px-4 transition-colors shadow-md">
+                                        Guardar Paciente
+                                    </button>
                                 </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Panel Principal de Paciente (Siempre a la derecha, oculto por defecto) -->
+                <div id="patientDetailsPanel" class="flex-1 lcars-panel p-4 hidden">
+                    <div class="flex items-center justify-between mb-4 border-b-2 pb-2 border-[#a37dfd]">
+                        <div class="flex-grow">
+                            <h2 id="patientName" class="text-2xl font-bold lcars-text"></h2>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="editPatientBtn" class="text-[#03a9f4] hover:text-[#0288d1] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                            </button>
+                            <button id="deletePatientBtn" class="text-[#f57c00] hover:text-[#ef6c00] transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.013 21H7.987a2 2 0 01-1.92-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                            <button id="downloadSinglePatientBtn" class="text-cyan-400 hover:text-cyan-500 transition-colors">
+                               <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN DE RESUMEN RÁPIDO -->
+                    <div id="aiQuickSummarySection" class="bg-[#4b3d68] p-4 rounded-3xl shadow-inner mb-6 border-2 border-[#a37dfd]">
+                        <h3 class="text-xl font-bold text-[#ff9100] mb-2">Resumen Rápido del Caso</h3>
+                        <div id="aiQuickSummary" class="text-white whitespace-pre-wrap">
+                            <p class="text-cyan-400 italic">Generando resumen...</p>
+                        </div>
+                    </div>
+                    
+                    <div id="notesSection" class="mb-6">
+                        <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Notas</h3>
+                        <div id="patientNotes" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-4 max-h-60 overflow-y-auto border-2 border-[#a37dfd]">
+                            <!-- Las notas se cargarán aquí -->
+                        </div>
+                        <div class="mt-4 flex flex-col space-y-2">
+                            <textarea id="newNoteInput" placeholder="Añade una nueva nota..." class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100] text-white"></textarea>
+                            <div class="flex items-center space-x-2">
+                                <input type="checkbox" id="priorityNoteCheckbox" class="rounded text-[#f57c00] focus:ring-[#f57c00]">
+                                <label for="priorityNoteCheckbox" class="text-sm text-[#a37dfd]">Marcar como nota prioritaria</label>
+                            </div>
+                            <button id="addNoteBtn" class="w-full bg-[#03a9f4] text-white rounded-xl py-2 transition-colors shadow-md">
+                                Añadir Nota
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="attachmentsSection" class="mb-6">
+                        <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Archivos Adjuntos</h3>
+                        <div id="patientAttachments" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-2 max-h-40 overflow-y-auto border-2 border-[#a37dfd]">
+                            <!-- Los archivos se cargarán aquí -->
+                        </div>
+                        <div class="mt-4 flex flex-col space-y-2">
+                            <input type="file" id="attachmentFileInput" class="w-full p-2 border-2 lcars-input focus:ring-2 focus:ring-[#ff9100]">
+                            <button id="addAttachmentBtn" class="w-full bg-[#673ab7] text-white rounded-xl py-2 hover:bg-[#5e35b1] transition-colors shadow-md">
+                                Subir Archivo
+                            </button>
+                            <div id="uploadProgress" class="hidden w-full bg-[#4b3d68] rounded-full h-2.5 mt-2">
+                                <div id="progressBar" class="bg-[#ff9100] h-2.5 rounded-full" style="width: 0%"></div>
                             </div>
                         </div>
-                        
-                        <textarea id="patientCurrentIllnessInput" placeholder="Enfermedad Actual" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
-                        <textarea id="patientTreatmentsInput" placeholder="Tratamientos" class="w-full p-2 border-2 lcars-input resize-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
-                        <textarea id="patientAnalysisInput" placeholder="Análisis" class="w-full p-2 border-2 lcars-input resize-none focus:outline-none focus:ring-2 focus:ring-[#ff9100]"></textarea>
-                        <div class="flex justify-end space-x-2 mt-4">
-                            <button type="button" id="cancelNewPatientBtn" class="bg-[#6b588a] text-white rounded-xl py-2 px-4 hover:bg-[#8369a1] transition-colors shadow-md">
-                                Cancelar
-                            </button>
-                            <button type="submit" id="savePatientBtn" class="lcars-btn text-white rounded-xl py-2 px-4 transition-colors shadow-md">
-                                Guardar Paciente
-                            </button>
+                    </div>
+                    
+                    <div id="appointmentsSection" class="mb-6">
+                        <h3 class="text-xl font-semibold text-[#ff9100] mb-2">Citas agendadas</h3>
+                        <div id="patientAppointments" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm space-y-2 max-h-40 overflow-y-auto border-2 border-[#a37dfd]">
+                            <!-- Las citas se cargarán aquí -->
                         </div>
-                    </form>
+                        <button id="addAppointmentFromPatientBtn" class="w-full bg-[#673ab7] text-white rounded-xl py-2 hover:bg-[#5e35b1] transition-colors shadow-md mt-4">
+                            Agendar Cita para este Paciente
+                        </button>
+                    </div>
+
+
+                    <div class="mb-6 space-y-2">
+                        <button id="generateClinicalSummaryBtn" class="w-full lcars-btn text-white rounded-xl py-2 transition-colors shadow-md">
+                            Generar Resumen Clínico con IA
+                        </button>
+                        <button id="generatePatientSummaryBtn" class="w-full bg-[#ff9100] text-white rounded-xl py-2 transition-colors shadow-md">
+                            Generar Resumen para el Paciente ✨
+                        </button>
+                    </div>
+
+                    <div id="aiClinicalSummarySection" class="hidden">
+                        <h3 class="text-xl font-bold text-[#ff9100] mb-2">Resumen Clínico (IA)</h3>
+                        <div id="aiClinicalSummary" class="bg-[#4b3d68] p-4 rounded-3xl shadow-sm text-white whitespace-pre-wrap">
+                            <!-- El resumen de la IA se mostrará aquí -->
+                        </div>
+                    </div>
+
+                    <!-- DATOS DEL PACIENTE AHORA EN LA PARTE INFERIOR -->
+                    <div id="patientInfo" class="text-[#a37dfd] mt-1 p-4 bg-[#4b3d68] rounded-3xl shadow-sm">
+                        <!-- Los datos del paciente se cargarán aquí -->
+                    </div>
+                    
                 </div>
             </div>
         </div>
@@ -447,6 +491,9 @@
         <option value="Londres">
     </datalist>
 
+    <!-- Three.js SDK -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -491,7 +538,11 @@
         const patientListEl = document.getElementById('patientList');
         const patientDetailsPanel = document.getElementById('patientDetailsPanel');
         const newPatientFormPanel = document.getElementById('newPatientFormPanel');
-        const showNewPatientFormBtn = document.getElementById('showNewPatientFormBtn');
+        const patientsPanel = document.getElementById('patientsPanel');
+        const calendarPanel = document.getElementById('calendarPanel');
+        const tabPatientsBtn = document.getElementById('tabPatientsBtn');
+        const tabCalendarBtn = document.getElementById('tabCalendarBtn');
+        const tabNewPatientBtn = document.getElementById('tabNewPatientBtn');
         const cancelNewPatientBtn = document.getElementById('cancelNewPatientBtn');
         const newPatientForm = document.getElementById('newPatientForm');
         const formTitleEl = document.getElementById('formTitle');
@@ -557,13 +608,16 @@
         const historySection = document.getElementById('historySection');
         const toggleHistoryBtn = document.getElementById('toggleHistoryBtn');
         const historyArrow = document.getElementById('historyArrow');
-
+        const attachFileInput = document.getElementById('attachmentFileInput');
+        const toggleConsoleBtn = document.getElementById('toggleConsoleBtn');
+        
         let patients = [];
         let selectedPatientId = null;
         let isEditing = false;
         let isLoginState = true;
         let currentMonth = new Date().getMonth();
         let currentYear = new Date().getFullYear();
+        let consoleIntervalId = null;
 
         // Custom Modal functions
         function showMessageModal(title, message) {
@@ -575,6 +629,151 @@
         messageOkBtn.addEventListener('click', () => {
             messageModal.classList.add('hidden');
         });
+
+        // Function to create and animate the 3D logo
+        function createAndAnimateLogo(container, isMainLogo = false) {
+            const width = isMainLogo ? 80 : 180;
+            const height = isMainLogo ? 80 : 90;
+            const cylinderRadius = isMainLogo ? 0.9 : 1.5;
+            const cylinderHeight = isMainLogo ? 0.15 : 0.3;
+            const scaleX = isMainLogo ? 1.0 : 2.5; 
+            const scaleZ = isMainLogo ? 1.0 : 1.0; 
+            const textScale = isMainLogo ? 100 : 180;
+            const cameraZ = isMainLogo ? 2.0 : 6;
+            const textY = isMainLogo ? 0 : 0;
+            
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(width, height);
+            container.appendChild(renderer.domElement);
+
+            // Create a canvas for the texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+            
+            if (isMainLogo) {
+                // Símbolo de Esculapio para el logo principal
+                const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Pro 6.4.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><path fill="#000000" d="M16 32h24l62.062 136.53L106.182 176c11.018 0 20.472 6.942 24.318 16.924L168 320h-48L85.818 200c-3.846-10.038-1.523-21.41 5.922-28.784L128 128h-32c-17.673 0-32 14.327-32 32v16H16V32zM320 32h-16c-17.673 0-32 14.327-32 32v256c0 17.673 14.327 32 32 32h16c17.673 0 32-14.327 32-32V64c0-17.673-14.327-32-32-32zm160-32H400c-17.673 0-32 14.327-32 32v256c0 17.673 14.327 32 32 32h16c17.673 0 32-14.327 32-32V32c0-17.673-14.327-32-32-32z"/></svg>`;
+                const svgBlob = new Blob([svgContent], {type: 'image/svg+xml'});
+                const svgUrl = URL.createObjectURL(svgBlob);
+                const img = new Image();
+                img.onload = () => {
+                    context.fillStyle = isMainLogo ? '#ff9100' : '#ff9100'; // Fondo del logo principal
+                    context.fillRect(0, 0, canvas.width, canvas.height);
+                    context.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    texture.needsUpdate = true;
+                };
+                img.src = svgUrl;
+                
+            } else {
+                context.fillStyle = '#ff9100';
+                context.fillRect(0, 0, canvas.width, canvas.height);
+                context.fillStyle = '#ffffff'; 
+                context.font = `bold ${textScale}px Roboto Mono`;
+                context.textAlign = 'center';
+                context.textBaseline = 'middle';
+                context.save();
+                context.translate(canvas.width / 2, canvas.height / 2);
+                context.rotate(3 * Math.PI / 2); // Rota el texto 270 grados
+                context.fillText('JDCN', 0, 0);
+                context.restore();
+            }
+
+            const texture = new THREE.CanvasTexture(canvas);
+
+            const coinGeometry = new THREE.CylinderGeometry(cylinderRadius, cylinderRadius, cylinderHeight, 64);
+            const coinMaterial = [
+                new THREE.MeshStandardMaterial({ color: '#c49a37', metalness: 0.8, roughness: 0.4 }),
+                new THREE.MeshStandardMaterial({ map: texture }),
+                new THREE.MeshStandardMaterial({ map: texture }),
+            ];
+            const coin = new THREE.Mesh(coinGeometry, coinMaterial);
+            coin.scale.set(scaleX, 1.0, scaleZ);
+            
+            // Set initial rotation to make the logo visible
+            coin.rotation.x = Math.PI / 2;
+            coin.position.y = isMainLogo ? -0.5 : -1.0;
+            scene.add(coin);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+            const pointLight = new THREE.PointLight(0xffffff, 1.5, 100);
+            pointLight.position.set(5, 5, 5);
+            scene.add(pointLight);
+
+            camera.position.z = cameraZ;
+
+            function animate() {
+                if (!container.closest('body')) return; // Stop animation if container is removed
+                requestAnimationFrame(animate);
+                // Rotate the coin on the Z-axis for a flat, spinning effect
+                coin.rotation.z += 0.005;
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+        
+        // Función para generar una línea de datos aleatoria
+        function generateRandomLine() {
+            const types = ['binary', 'hex', 'alphanumeric'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let line = '';
+            const length = 50 + Math.floor(Math.random() * 50);
+
+            switch(type) {
+                case 'binary':
+                    for (let i = 0; i < length; i++) {
+                        line += Math.round(Math.random());
+                    }
+                    line = '0b' + line;
+                    break;
+                case 'hex':
+                    const hexChars = '0123456789abcdef';
+                    for (let i = 0; i < length / 2; i++) {
+                        line += hexChars[Math.floor(Math.random() * hexChars.length)];
+                    }
+                    line = '0x' + line;
+                    break;
+                case 'alphanumeric':
+                    const alphaChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+=-`~';
+                    for (let i = 0; i < length; i++) {
+                        line += alphaChars[Math.floor(Math.random() * alphaChars.length)];
+                    }
+                    break;
+            }
+            return line;
+        }
+
+        // Función para agregar una línea a la consola y hacer scroll
+        function addLine() {
+            const consoleOutput = document.getElementById('consoleOutput');
+            const newLine = generateRandomLine();
+            const textNode = document.createTextNode(newLine + '\n');
+            consoleOutput.appendChild(textNode);
+            // Hacer scroll hasta el final para ver la nueva línea
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        // Inicia la generación de líneas
+        function startConsole() {
+            if (consoleIntervalId === null) {
+                consoleIntervalId = setInterval(addLine, 50);
+                toggleConsoleBtn.textContent = 'Detener Consola';
+            }
+        }
+
+        // Detiene la generación de líneas
+        function stopConsole() {
+            if (consoleIntervalId !== null) {
+                clearInterval(consoleIntervalId);
+                consoleIntervalId = null;
+                toggleConsoleBtn.textContent = 'Iniciar Consola';
+            }
+        }
 
         // Initialize Firebase
         window.onload = function () {
@@ -591,6 +790,16 @@
                 storage = getStorage(app);
                 setupAuthListener();
                 setupEventListeners();
+                
+                // Initialize 3D logo for auth panel
+                const authLogoContainer = document.getElementById('logo-3d-container');
+                if (authLogoContainer) {
+                    createAndAnimateLogo(authLogoContainer);
+                }
+
+                // Inicia el efecto de consola en la pantalla principal
+                startConsole();
+
             } catch (e) {
                 authErrorEl.textContent = 'Error al inicializar Firebase. Revisa tus credenciales.';
                 authErrorEl.classList.remove('hidden');
@@ -751,7 +960,8 @@
                 }
             }, (error) => {
                 console.error("Error al escuchar los datos del paciente:", error);
-                showMessageModal('Error de Conexión', 'No se pudieron cargar los datos. Revisa tu conexión a internet o las reglas de seguridad de Firestore.');
+                // Updated error message to be more descriptive for the user
+                showMessageModal('Error de Permisos', 'No se pudieron cargar los datos. Esto puede deberse a que no tienes los permisos para acceder a esta información. Intenta recargar la página o volver a iniciar sesión.');
             });
         }
 
@@ -825,7 +1035,7 @@
                     attachmentDiv.className = 'p-3 rounded-2xl bg-[#4b3d68] border-2 border-[#a37dfd]';
                     attachmentDiv.innerHTML = `
                         <a href="${attachment.url}" target="_blank" class="text-cyan-400 hover:text-cyan-200 transition-colors font-semibold flex items-center space-x-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 2h2v1H6V6zm2 4H6v1h2v-1zm2 4H6v1h2v-1zm4-4h-2v1h2v-1zm0 4h-2v1h2v-1z" clip-rule="evenodd" />
                             </svg>
                             <span>${attachment.name}</span>
@@ -859,17 +1069,16 @@
             aiQuickSummaryEl.textContent = 'Generando resumen...';
 
             patientDetailsPanel.classList.remove('hidden');
+            patientsPanel.classList.add('hidden');
+            calendarPanel.classList.add('hidden');
             newPatientFormPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.add('hidden');
         }
 
         function closePatientDetails() {
             selectedPatientId = null;
             patientDetailsPanel.classList.add('hidden');
-            showNewPatientFormBtn.classList.remove('hidden');
-            mainPanel.classList.remove('grid-cols-2');
-            mainPanel.classList.add('grid-cols-3');
-            calendarPanel.classList.remove('hidden');
+            patientsPanel.classList.remove('hidden');
+            setActiveTab(tabPatientsBtn);
         }
 
         // Logic
@@ -880,10 +1089,6 @@
                 renderPatientDetails(patient);
                 generateQuickSummary();
             }
-            mainPanel.classList.remove('grid-cols-3');
-            mainPanel.classList.add('grid-cols-2');
-            calendarPanel.classList.add('hidden');
-            patientDetailsPanel.classList.remove('hidden');
         }
 
         async function savePatient(e) {
@@ -948,15 +1153,10 @@
                 loadingIndicator.classList.add('hidden');
                 newPatientForm.reset();
                 patientAgeDisplay.textContent = '';
-                newPatientFormPanel.classList.add('hidden');
-                patientDetailsPanel.classList.add('hidden');
-                showNewPatientFormBtn.classList.remove('hidden');
                 isEditing = false;
                 formTitleEl.textContent = 'Añadir Nuevo Paciente';
                 savePatientBtn.textContent = 'Guardar Paciente';
-                calendarPanel.classList.remove('hidden');
-                mainPanel.classList.remove('grid-cols-2');
-                mainPanel.classList.add('grid-cols-3');
+                setActiveTab(tabPatientsBtn);
             }
         }
 
@@ -1061,7 +1261,12 @@
                 patientTreatmentsInput.value = patient.treatments || '';
                 patientAnalysisInput.value = patient.analysis || '';
                 patientDetailsPanel.classList.add('hidden');
+                patientsPanel.classList.add('hidden');
+                calendarPanel.classList.add('hidden');
                 newPatientFormPanel.classList.remove('hidden');
+                tabPatientsBtn.classList.remove('active');
+                tabCalendarBtn.classList.remove('active');
+                tabNewPatientBtn.classList.add('active');
             } else {
                 showMessageModal('Error', 'No se encontró el paciente para editar.');
             }
@@ -1339,7 +1544,7 @@
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
-            if (!geminiApiKey || geminiApiKey === 'TU_CLAVE_DE_API_DE_GEMINI') {
+            if (!geminiApiKey) {
                  aiQuickSummaryEl.textContent = 'Error: No se encontró la clave de API de Gemini. Asegúrate de que la API está habilitada en tu proyecto de Firebase.';
                  console.error('Error: Gemini API key is missing.');
                  return;
@@ -1427,7 +1632,7 @@
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
-             if (!geminiApiKey || geminiApiKey === 'TU_CLAVE_DE_API_DE_GEMINI') {
+             if (!geminiApiKey) {
                 aiClinicalSummaryEl.textContent = 'Error: No se encontró la clave de API de Gemini. Asegúrate de que la API está habilitada en tu proyecto de Firebase.';
                 console.error('Error: Gemini API key is missing.');
                 loadingIndicator.classList.add('hidden');
@@ -1499,7 +1704,7 @@
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${geminiApiKey}`;
 
-             if (!geminiApiKey || geminiApiKey === 'TU_CLAVE_DE_API_DE_GEMINI') {
+             if (!geminiApiKey) {
                 aiPatientSummaryEl.textContent = 'Error: No se encontró la clave de API de Gemini. Asegúrate de que la API está habilitada en tu proyecto de Firebase.';
                 console.error('Error: Gemini API key is missing.');
                 loadingIndicator.classList.add('hidden');
@@ -1534,35 +1739,46 @@
             }
         }
 
+        function setActiveTab(activeButton) {
+            const tabs = [tabPatientsBtn, tabCalendarBtn, tabNewPatientBtn];
+            const panels = [patientsPanel, calendarPanel, newPatientFormPanel];
+
+            tabs.forEach(tab => tab.classList.remove('active'));
+            panels.forEach(panel => panel.classList.add('hidden'));
+
+            activeButton.classList.add('active');
+            
+            if (activeButton === tabPatientsBtn) {
+                patientsPanel.classList.remove('hidden');
+                patientDetailsPanel.classList.add('hidden');
+            } else if (activeButton === tabCalendarBtn) {
+                calendarPanel.classList.remove('hidden');
+                patientDetailsPanel.classList.add('hidden');
+            } else if (activeButton === tabNewPatientBtn) {
+                newPatientFormPanel.classList.remove('hidden');
+                patientDetailsPanel.classList.add('hidden');
+            }
+        }
+
         // Event listeners
         function setupEventListeners() {
             authForm.addEventListener('submit', handleAuth);
             toggleAuthBtn.addEventListener('click', toggleAuthMode);
             forgotPasswordBtn.addEventListener('click', handleForgotPassword);
             
-            showNewPatientFormBtn.addEventListener('click', () => {
-                patientDetailsPanel.classList.add('hidden');
-                newPatientFormPanel.classList.remove('hidden');
+            tabPatientsBtn.addEventListener('click', () => setActiveTab(tabPatientsBtn));
+            tabCalendarBtn.addEventListener('click', () => setActiveTab(tabCalendarBtn));
+            tabNewPatientBtn.addEventListener('click', () => {
                 isEditing = false;
                 formTitleEl.textContent = 'Añadir Nuevo Paciente';
                 savePatientBtn.textContent = 'Guardar Paciente';
                 newPatientForm.reset();
                 patientAgeDisplay.textContent = '';
-                // Hide calendar
-                calendarPanel.classList.add('hidden');
-                mainPanel.classList.remove('grid-cols-3');
-                mainPanel.classList.add('grid-cols-2');
+                setActiveTab(tabNewPatientBtn);
             });
-            cancelNewPatientBtn.addEventListener('click', () => {
-                newPatientFormPanel.classList.add('hidden');
-                showNewPatientFormBtn.classList.remove('hidden');
-                // Show calendar again
-                calendarPanel.classList.remove('hidden');
-                mainPanel.classList.remove('grid-cols-2');
-                mainPanel.classList.add('grid-cols-3');
-            });
-            closePatientBtn.addEventListener('click', closePatientDetails);
-            newPatientForm.addEventListener('submit', savePatient);
+            cancelNewPatientBtn.addEventListener('click', () => setActiveTab(tabPatientsBtn));
+
+            savePatientBtn.addEventListener('click', savePatient);
             patientDobInput.addEventListener('change', () => {
                 patientAgeDisplay.textContent = calculateAge(patientDobInput.value);
             });
@@ -1574,8 +1790,6 @@
             cancelDeleteBtn.addEventListener('click', cancelDelete);
             generateClinicalSummaryBtn.addEventListener('click', generateClinicalSummary);
             generatePatientSummaryBtn.addEventListener('click', generatePatientSummary);
-            
-            // Tab functionality (no longer used, but keeping for reference if needed)
             
             // Search functionality
             searchInput.addEventListener('input', (e) => {
@@ -1591,6 +1805,13 @@
             // Event listeners for download buttons
             document.getElementById('downloadAllPatientsBtn').addEventListener('click', downloadAllPatientsCSV);
             document.getElementById('downloadSinglePatientBtn').addEventListener('click', downloadSinglePatient);
+            toggleConsoleBtn.addEventListener('click', () => {
+                if (consoleIntervalId === null) {
+                    startConsole();
+                } else {
+                    stopConsole();
+                }
+            });
 
             // Logic for collapsible history section
             toggleHistoryBtn.addEventListener('click', () => {
@@ -1603,30 +1824,10 @@
             });
 
             logoutBtn.addEventListener('click', logout);
+            
+            // Re-apply event listeners after they are re-added to the DOM
+            // This is not necessary with the new tabbed layout as the buttons are persistent
         }
-
-        // Initialize Firebase
-        window.onload = function () {
-            if (Object.values(firebaseConfig).some(value => value === '...')) {
-                authErrorEl.textContent = 'Error: No se han configurado las credenciales de Firebase. La aplicación no funcionará.';
-                authErrorEl.classList.remove('hidden');
-                loadingIndicator.classList.add('hidden');
-                return;
-            }
-            try {
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-                storage = getStorage(app);
-                setupAuthListener();
-                setupEventListeners(); // Now call this function here.
-            } catch (e) {
-                authErrorEl.textContent = 'Error al inicializar Firebase. Revisa tus credenciales.';
-                authErrorEl.classList.remove('hidden');
-                loadingIndicator.classList.add('hidden');
-                console.error("Error initializing Firebase:", e);
-            }
-        };
     </script>
 </body>
 </html>
